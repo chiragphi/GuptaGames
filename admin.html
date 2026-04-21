@@ -411,6 +411,8 @@ const FIREBASE_CONFIG = {
   appId: "1:634476044291:web:83732c9b663693c584ae36",
 };
 
+const ADMIN_EMAILS = ['chiragphiig@gmail.com'];
+
 let db, auth, currentUser;
 
 // ── Init ──────────────────────────────────────────────────────────────────────
@@ -438,9 +440,9 @@ let db, auth, currentUser;
     }
   });
 
-  auth.onAuthStateChanged(user => {
+  auth.onAuthStateChanged(async user => {
     currentUser = user;
-    if (user) {
+    if (user && ADMIN_EMAILS.includes(user.email)) {
       document.getElementById('admin-auth-wall').style.display = 'none';
       document.getElementById('admin-app').style.display = 'grid';
       document.getElementById('admin-user-info').textContent = user.email;
@@ -448,6 +450,14 @@ let db, auth, currentUser;
       wireNav();
       subscribeActivity();
       subscribeJackpot();
+    } else if (user && !ADMIN_EMAILS.includes(user.email)) {
+      // Signed in but not an admin — show error and sign out
+      await auth.signOut();
+      const err = document.getElementById('admin-login-err');
+      err.style.display = 'block';
+      err.textContent = 'Access denied — this account is not an admin.';
+      document.getElementById('admin-auth-wall').style.display = 'flex';
+      document.getElementById('admin-app').style.display = 'none';
     } else {
       document.getElementById('admin-auth-wall').style.display = 'flex';
       document.getElementById('admin-app').style.display = 'none';
