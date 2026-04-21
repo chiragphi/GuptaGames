@@ -52,36 +52,39 @@ const Plinko = (() => {
     update() {
       if (this.landed) return;
 
-      this.vy += 0.32; // gravity
+      this.vy += 0.35; // gravity
       this.x += this.vx;
       this.y += this.vy;
 
       this.trail.push({ x: this.x, y: this.y });
       if (this.trail.length > 8) this.trail.shift();
 
-      // Bounce off pegs
+      // Bounce off pegs — only one collision per frame to prevent trapping
+      let hitPeg = false;
       for (const peg of pegs) {
+        if (hitPeg) break;
         const dx = this.x - peg.x;
         const dy = this.y - peg.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
         if (dist < this.radius + pegRadius) {
-          // Collision response
+          hitPeg = true;
           const angle = Math.atan2(dy, dx);
           const speed = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
 
           // ADDICTION: Near-miss bias — nudge ball toward target bucket
-          let deflection = (Math.random() - 0.5) * 0.4;
+          let deflection = (Math.random() - 0.5) * 0.5;
           if (this.isNearMiss && this.targetBucket >= 0) {
             const centerX = pegSpacing * (0.5 + this.targetBucket);
             deflection += (centerX - this.x) * 0.005;
           }
 
-          this.vx = Math.cos(angle) * speed * 0.6 + deflection;
-          this.vy = Math.sin(angle) * speed * 0.5 + 0.5;
+          this.vx = Math.cos(angle) * speed * 0.55 + deflection;
+          // Always ensure downward velocity after bounce so ball can't get trapped
+          this.vy = Math.abs(Math.sin(angle) * speed * 0.45) + 1.0;
 
           // Separate from peg
-          this.x = peg.x + Math.cos(angle) * (this.radius + pegRadius + 1);
-          this.y = peg.y + Math.sin(angle) * (this.radius + pegRadius + 1);
+          this.x = peg.x + Math.cos(angle) * (this.radius + pegRadius + 2);
+          this.y = peg.y + Math.sin(angle) * (this.radius + pegRadius + 2);
           this.bounces++;
           Audio.playPlinkoHit();
         }
