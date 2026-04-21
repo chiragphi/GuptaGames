@@ -88,6 +88,28 @@ const Core = (() => {
     if (storageKey === k) return;
     storageKey = k;
     load();
+    // Refresh UI immediately after loading the correct user's state
+    updateBalanceUI(0, state.balance);
+    updateXPBar();
+  }
+
+  function startBalanceSync() {
+    setInterval(() => {
+      try {
+        const raw = localStorage.getItem(storageKey);
+        if (!raw) return;
+        const saved = JSON.parse(raw);
+        if (saved.balance !== undefined && saved.balance !== state.balance) {
+          state.balance = saved.balance;
+          updateBalanceUI(state.balance, state.balance);
+        }
+        if (saved.xp !== undefined && saved.xp !== state.xp) {
+          state.xp = saved.xp;
+          state.xpLevel = saved.xpLevel || state.xpLevel;
+          updateXPBar();
+        }
+      } catch(e) {}
+    }, 500);
   }
 
   function save() {
@@ -420,6 +442,7 @@ const Core = (() => {
   // ===== INIT =====
   function init() {
     load();
+    startBalanceSync();
     // Check if low balance on return
     if (state.balance === 0 && canRebuy()) {
       setTimeout(() => {
@@ -440,7 +463,7 @@ const Core = (() => {
   }
 
   return {
-    init, save, load, setUID, getState, getBalance, addBalance, canBet, placeBet,
+    init, save, load, setUID, startBalanceSync, getState, getBalance, addBalance, canBet, placeBet,
     resolveWin, resolveLoss, addXP, checkAchievement, hasAchievement,
     canRebuy, rebuy, rebuyTimeLeft, getSessionSummary,
     setBalanceEl, setXPEls, setOnBalanceChange, updateBalanceUI, updateXPBar,
