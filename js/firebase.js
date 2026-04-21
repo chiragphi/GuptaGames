@@ -1,14 +1,14 @@
 // LuckyDev Casino — Firebase Realtime Database Module
-// Replace FIREBASE_CONFIG with your own config
 
 const FIREBASE_CONFIG = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_PROJECT.firebaseapp.com",
-  databaseURL: "https://YOUR_PROJECT-default-rtdb.firebaseio.com",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_PROJECT.appspot.com",
-  messagingSenderId: "YOUR_SENDER_ID",
-  appId: "YOUR_APP_ID"
+  apiKey: "AIzaSyBkok672ukiiFdpSWdXrVhkJWu4fDNEeVw",
+  authDomain: "gamew-6cd14.firebaseapp.com",
+  databaseURL: "https://gamew-6cd14-default-rtdb.firebaseio.com",
+  projectId: "gamew-6cd14",
+  storageBucket: "gamew-6cd14.firebasestorage.app",
+  messagingSenderId: "634476044291",
+  appId: "1:634476044291:web:83732c9b663693c584ae36",
+  measurementId: "G-RM60ZGNTEF"
 };
 
 let db = null;
