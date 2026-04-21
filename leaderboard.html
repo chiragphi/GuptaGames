@@ -182,27 +182,37 @@ async function renderWinsLB() {
   }).join('');
 }
 
-function renderActivity() {
-  const FAKE_NAMES = ['LuckyAce','SlotKing','GoldRush','WildCard','CrashPro','BetMaster','DiamondHnd','HighRoller'];
-  const GAMES = ['Slots','Crash','Plinko','Blackjack','Roulette','Mines','Dice'];
+let activityItems = [];
+
+function renderActivityList() {
   const el = document.getElementById('activity-list');
   if (!el) return;
-  const items = Array.from({length: 20}, () => ({
-    player: FAKE_NAMES[Math.floor(Math.random() * FAKE_NAMES.length)],
-    game: GAMES[Math.floor(Math.random() * GAMES.length)],
-    amount: Math.floor(Math.random() * 5000 + 50),
-    t: Math.floor(Math.random() * 60),
-  }));
-  el.innerHTML = items.map(item => `
+  if (!activityItems.length) {
+    el.innerHTML = `<div style="text-align:center;padding:32px;color:var(--text-sec)">
+      No activity yet — be the first to win!
+    </div>`;
+    return;
+  }
+  el.innerHTML = activityItems.map(item => {
+    const ts = item.timestamp ? timeAgo(item.timestamp) : '';
+    return `
     <div style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--bg-panel);border-radius:var(--radius-sm)">
       <svg class="icon" style="width:18px;height:18px;color:var(--gold)" aria-hidden="true"><use href="#icon-coin"/></svg>
       <span style="color:var(--cyan);font-weight:700">${item.player}</span>
       <span style="color:var(--text-sec);font-size:0.82rem">won</span>
-      <span style="color:var(--gold);font-weight:700">${item.amount.toLocaleString()} chips</span>
+      <span style="color:var(--gold);font-weight:700">${(item.amount||0).toLocaleString()} chips</span>
       <span style="color:var(--text-sec);font-size:0.82rem">on ${item.game}</span>
-      <span style="margin-left:auto;color:var(--text-dim);font-size:0.72rem">${item.t}s ago</span>
-    </div>
-  `).join('');
+      <span style="margin-left:auto;color:var(--text-dim);font-size:0.72rem">${ts}</span>
+    </div>`;
+  }).join('');
+}
+
+function timeAgo(ts) {
+  const s = Math.floor((Date.now() - ts) / 1000);
+  if (s < 60) return s + 's ago';
+  const m = Math.floor(s / 60);
+  if (m < 60) return m + 'm ago';
+  return Math.floor(m / 60) + 'h ago';
 }
 
 // Tabs
@@ -215,7 +225,7 @@ document.querySelectorAll('.tab').forEach(tab => {
     const content = document.getElementById(contentId);
     if (content) content.style.display = '';
     Audio.playClick();
-    if (tab.dataset.tab === 'activity') renderActivity();
+    if (tab.dataset.tab === 'activity') renderActivityList();
   });
 });
 
@@ -232,9 +242,17 @@ document.querySelectorAll('.tab').forEach(tab => {
   renderBalanceLB();
   renderWinsLB();
 
-  // Auto-refresh every 8s
+  // Subscribe to live activity feed from Firebase
+  FirebaseDB.subscribeActivity(items => {
+    activityItems = items;
+    // Only re-render if activity tab is currently visible
+    const activeTab = document.querySelector('.tab.active');
+    if (activeTab && activeTab.dataset.tab === 'activity') renderActivityList();
+  }, 50);
+
+  // Auto-refresh leaderboard every 8s
   let refreshCount = 0;
-  const refreshInterval = setInterval(async () => {
+  setInterval(async () => {
     refreshCount++;
     const statusEl = document.getElementById('lb-refresh-status');
     if (statusEl) statusEl.textContent = 'Refreshing...';

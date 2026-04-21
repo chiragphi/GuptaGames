@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Admin — LuckyDev Casino</title>
+<link rel="stylesheet" href="css/main.css"/>
+<link rel="stylesheet" href="css/animations.css"/>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+<style>
+.admin-layout { display:grid; grid-template-columns:220px 1fr; min-height:100vh; }
+
+.admin-sidebar {
+  background:var(--bg-card);
+  border-right:1px solid var(--border);
+  padding:20px 0;
+  position:sticky;
+  top:0;
+  height:100vh;
+  overflow-y:auto;
+}
+
+.admin-logo {
+  display:flex;align-items:center;gap:10px;
+  font-size:1rem;font-weight:900;color:var(--gold);
+  padding:0 16px 20px;border-bottom:1px solid var(--border);
+  margin-bottom:12px;
+}
+
+.admin-nav-item {
+  display:flex;align-items:center;gap:10px;
+  padding:10px 16px;cursor:pointer;
+  font-size:0.88rem;color:var(--text-sec);
+  border-left:3px solid transparent;
+  transition:all 0.15s;
+}
+.admin-nav-item:hover { background:var(--bg-panel);color:var(--text-pri); }
+.admin-nav-item.active { border-left-color:var(--gold);color:var(--gold);background:rgba(255,215,0,0.05); }
+.admin-nav-item .icon { width:16px;height:16px;flex-shrink:0; }
+
+.admin-main { padding:28px; overflow-y:auto; }
+
+.admin-page { display:none; }
+.admin-page.active { display:block; }
+
+.admin-header {
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:24px;flex-wrap:wrap;gap:12px;
+}
+
+.admin-title { font-size:1.6rem;font-weight:900;color:var(--text-pri); }
+.admin-sub { font-size:0.82rem;color:var(--text-sec);margin-top:2px; }
+
+.stat-cards { display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;margin-bottom:28px; }
+
+.stat-card {
+  background:var(--bg-card);border:1px solid var(--border);
+  border-radius:var(--radius-md);padding:18px;
+}
+.stat-card-num { font-size:1.8rem;font-weight:900;font-family:var(--font-mono); }
+.stat-card-lbl { font-size:0.72rem;color:var(--text-dim);margin-top:4px;text-transform:uppercase;letter-spacing:0.05em; }
+
+.admin-table { width:100%;border-collapse:collapse; }
+.admin-table th {
+  text-align:left;padding:10px 12px;
+  font-size:0.72rem;text-transform:uppercase;letter-spacing:0.06em;
+  color:var(--text-dim);border-bottom:1px solid var(--border);
+  font-weight:600;
+}
+.admin-table td {
+  padding:10px 12px;border-bottom:1px solid var(--border);
+  font-size:0.85rem;color:var(--text-pri);
+  vertical-align:middle;
+}
+.admin-table tr:hover td { background:var(--bg-panel); }
+.admin-table .mono { font-family:var(--font-mono); }
+
+.badge-online { display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--green);margin-right:6px; }
+
+.action-row { display:flex;gap:8px;flex-wrap:wrap;align-items:center; }
+
+.input-sm {
+  background:var(--bg-panel);border:1px solid var(--border);
+  border-radius:var(--radius-sm);color:var(--text-pri);
+  padding:6px 10px;font-size:0.85rem;font-family:var(--font-body);
+  outline:none;
+}
+.input-sm:focus { border-color:var(--gold-dim); }
+
+.section-header {
+  font-size:1rem;font-weight:800;color:var(--text-pri);
+  margin:0 0 12px;display:flex;align-items:center;gap:8px;
+}
+
+.auth-wall {
+  position:fixed;inset:0;background:var(--bg-deep);z-index:9999;
+  display:flex;align-items:center;justify-content:center;padding:20px;
+}
+
+.log-entry {
+  padding:8px 12px;border-bottom:1px solid var(--border);
+  font-size:0.82rem;display:flex;gap:10px;align-items:flex-start;
+}
+.log-time { color:var(--text-dim);font-family:var(--font-mono);font-size:0.75rem;white-space:nowrap;padding-top:1px; }
+</style>
+</head>
+<body>
+
+<div style="display:none" id="svg-sprite-container"></div>
+<script>fetch('assets/icons/sprite.svg').then(r=>r.text()).then(t=>{document.getElementById('svg-sprite-container').innerHTML=t;});</script>
+<div id="toast-container"></div>
+
+<!-- Auth gate -->
+<div class="auth-wall" id="admin-auth-wall">
+  <div style="width:100%;max-width:380px">
+    <div style="text-align:center;margin-bottom:28px">
+      <svg class="icon" style="width:56px;height:56px;color:var(--gold)" aria-hidden="true"><use href="#icon-crown"/></svg>
+      <div style="font-size:1.4rem;font-weight:900;color:var(--gold);margin-top:8px">Admin Panel</div>
+      <div style="color:var(--text-sec);font-size:0.82rem;margin-top:4px">LuckyDev Casino</div>
+    </div>
+    <div class="card" style="padding:24px">
+      <form id="admin-login-form">
+        <div style="margin-bottom:14px">
+          <label style="font-size:0.75rem;color:var(--text-sec);display:block;margin-bottom:5px;text-transform:uppercase;letter-spacing:0.05em">Email</label>
+          <input type="email" id="admin-email" class="input-sm" style="width:100%;box-sizing:border-box" placeholder="Admin email" required/>
+        </div>
+        <div style="margin-bottom:20px">
+          <label style="font-size:0.75rem;color:var(--text-sec);display:block;margin-bottom:5px;text-transform:uppercase;letter-spacing:0.05em">Password</label>
+          <input type="password" id="admin-password" class="input-sm" style="width:100%;box-sizing:border-box" placeholder="Password" required/>
+        </div>
+        <div id="admin-login-err" style="display:none;color:var(--red);font-size:0.82rem;margin-bottom:12px"></div>
+        <button type="submit" class="btn btn-gold" style="width:100%" id="admin-login-btn">Sign In</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Admin layout (hidden until authenticated) -->
+<div class="admin-layout" id="admin-app" style="display:none">
+
+  <!-- Sidebar -->
+  <aside class="admin-sidebar">
+    <div class="admin-logo">
+      <svg class="icon" style="width:20px;height:20px" aria-hidden="true"><use href="#icon-crown"/></svg>
+      Admin
+    </div>
+
+    <div class="admin-nav-item active" data-page="overview">
+      <svg class="icon" aria-hidden="true"><use href="#icon-home"/></svg>
+      Overview
+    </div>
+    <div class="admin-nav-item" data-page="users">
+      <svg class="icon" aria-hidden="true"><use href="#icon-profile"/></svg>
+      Users
+    </div>
+    <div class="admin-nav-item" data-page="leaderboard">
+      <svg class="icon" aria-hidden="true"><use href="#icon-trophy"/></svg>
+      Leaderboard
+    </div>
+    <div class="admin-nav-item" data-page="activity">
+      <svg class="icon" aria-hidden="true"><use href="#icon-lightning-bolt"/></svg>
+      Live Activity
+    </div>
+    <div class="admin-nav-item" data-page="jackpot">
+      <svg class="icon" aria-hidden="true"><use href="#icon-star"/></svg>
+      Jackpot
+    </div>
+    <div class="admin-nav-item" data-page="danger">
+      <svg class="icon" style="color:var(--red)" aria-hidden="true"><use href="#icon-warning"/></svg>
+      Danger Zone
+    </div>
+
+    <div style="position:absolute;bottom:16px;left:0;right:0;padding:0 16px">
+      <div style="font-size:0.72rem;color:var(--text-dim);margin-bottom:8px" id="admin-user-info"></div>
+      <button class="btn btn-ghost btn-sm" style="width:100%" onclick="adminSignOut()">Sign Out</button>
+      <a href="lobby.html" class="btn btn-ghost btn-sm" style="width:100%;margin-top:6px;display:flex;justify-content:center">
+        Back to Casino
+      </a>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <main class="admin-main">
+
+    <!-- Overview -->
+    <div class="admin-page active" id="page-overview">
+      <div class="admin-header">
+        <div>
+          <div class="admin-title">Overview</div>
+          <div class="admin-sub">Real-time stats from Firebase</div>
+        </div>
+        <button class="btn btn-ghost btn-sm" onclick="loadOverview()">
+          <svg class="icon" aria-hidden="true"><use href="#icon-lightning-bolt"/></svg>
+          Refresh
+        </button>
+      </div>
+
+      <div class="stat-cards" id="overview-stats">
+        <div class="stat-card"><div class="stat-card-num" style="color:var(--gold)">—</div><div class="stat-card-lbl">Auth Users</div></div>
+        <div class="stat-card"><div class="stat-card-num" style="color:var(--cyan)">—</div><div class="stat-card-lbl">Leaderboard Entries</div></div>
+        <div class="stat-card"><div class="stat-card-num" style="color:var(--green)">—</div><div class="stat-card-lbl">Total Wins Logged</div></div>
+        <div class="stat-card"><div class="stat-card-num" style="color:var(--gold)">—</div><div class="stat-card-lbl">Current Jackpot</div></div>
+        <div class="stat-card"><div class="stat-card-num" style="color:var(--purple)">—</div><div class="stat-card-lbl">Activity Events</div></div>
+      </div>
+
+      <div class="card" style="margin-bottom:20px">
+        <div class="section-header">
+          <svg class="icon" style="width:16px;height:16px;color:var(--cyan)" aria-hidden="true"><use href="#icon-lightning-bolt"/></svg>
+          Recent Activity
+        </div>
+        <div id="overview-activity" style="max-height:300px;overflow-y:auto">
+          <div style="text-align:center;padding:24px;color:var(--text-sec)">Loading...</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="section-header">
+          <svg class="icon" style="width:16px;height:16px;color:var(--gold)" aria-hidden="true"><use href="#icon-trophy"/></svg>
+          Top 5 Players
+        </div>
+        <div id="overview-top5">
+          <div style="text-align:center;padding:24px;color:var(--text-sec)">Loading...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Users -->
+    <div class="admin-page" id="page-users">
+      <div class="admin-header">
+        <div>
+          <div class="admin-title">Users</div>
+          <div class="admin-sub">Firebase Auth accounts</div>
+        </div>
+        <button class="btn btn-ghost btn-sm" onclick="loadUsers()">Refresh</button>
+      </div>
+
+      <div class="card" style="padding:0;overflow:hidden">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>Email</th>
+              <th>Display Name</th>
+              <th>UID</th>
+              <th>Created</th>
+              <th>Last Sign In</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="users-tbody">
+            <tr><td colspan="6" style="text-align:center;padding:32px;color:var(--text-sec)">Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Leaderboard -->
+    <div class="admin-page" id="page-leaderboard">
+      <div class="admin-header">
+        <div>
+          <div class="admin-title">Leaderboard</div>
+          <div class="admin-sub">Manage player scores in Firebase</div>
+        </div>
+        <div class="action-row">
+          <button class="btn btn-ghost btn-sm" onclick="loadLeaderboard()">Refresh</button>
+          <button class="btn btn-ghost btn-sm" style="color:var(--red)" onclick="confirmClearLeaderboard()">
+            <svg class="icon" aria-hidden="true"><use href="#icon-warning"/></svg>
+            Clear All
+          </button>
+        </div>
+      </div>
+
+      <div class="card" style="padding:0;overflow:hidden">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Username</th>
+              <th>Balance</th>
+              <th>XP</th>
+              <th>Level</th>
+              <th>Games</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="lb-tbody">
+            <tr><td colspan="7" style="text-align:center;padding:32px;color:var(--text-sec)">Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Activity -->
+    <div class="admin-page" id="page-activity">
+      <div class="admin-header">
+        <div>
+          <div class="admin-title">Live Activity</div>
+          <div class="admin-sub">Real-time win feed from Firebase — updates automatically</div>
+        </div>
+        <div class="action-row">
+          <span style="font-size:0.78rem;color:var(--green)" id="activity-live-label">
+            <span class="badge-online"></span>Live
+          </span>
+          <button class="btn btn-ghost btn-sm" style="color:var(--red)" onclick="confirmClearActivity()">
+            Clear Feed
+          </button>
+        </div>
+      </div>
+
+      <div class="card" style="padding:0;overflow:hidden;max-height:600px;overflow-y:auto" id="activity-log">
+        <div style="text-align:center;padding:32px;color:var(--text-sec)">Connecting to Firebase...</div>
+      </div>
+    </div>
+
+    <!-- Jackpot -->
+    <div class="admin-page" id="page-jackpot">
+      <div class="admin-header">
+        <div>
+          <div class="admin-title">Jackpot</div>
+          <div class="admin-sub">Progressive jackpot management</div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-bottom:20px;text-align:center;padding:40px">
+        <svg class="icon" style="width:64px;height:64px;color:var(--gold);animation:neon-pulse-gold 2s infinite" aria-hidden="true"><use href="#icon-crown"/></svg>
+        <div style="font-size:3rem;font-weight:900;color:var(--gold);font-family:var(--font-mono);margin-top:12px" id="jackpot-display-admin">—</div>
+        <div style="color:var(--text-sec);font-size:0.85rem;margin-top:4px">Current Jackpot Value (chips)</div>
+      </div>
+
+      <div class="card" style="margin-bottom:16px">
+        <div class="section-header">Set Jackpot Amount</div>
+        <div class="action-row">
+          <input type="number" id="jackpot-new-val" class="input-sm" value="50000" min="0" style="width:160px"/>
+          <button class="btn btn-gold btn-sm" onclick="setJackpot()">Set Jackpot</button>
+        </div>
+        <div style="font-size:0.78rem;color:var(--text-dim);margin-top:8px">This overwrites the current jackpot value.</div>
+      </div>
+
+      <div class="card">
+        <div class="section-header">Quick Presets</div>
+        <div class="action-row">
+          <button class="btn btn-ghost btn-sm" onclick="setJackpotVal(10000)">10,000</button>
+          <button class="btn btn-ghost btn-sm" onclick="setJackpotVal(50000)">50,000</button>
+          <button class="btn btn-ghost btn-sm" onclick="setJackpotVal(100000)">100,000</button>
+          <button class="btn btn-ghost btn-sm" onclick="setJackpotVal(500000)">500,000</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Danger Zone -->
+    <div class="admin-page" id="page-danger">
+      <div class="admin-header">
+        <div>
+          <div class="admin-title" style="color:var(--red)">Danger Zone</div>
+          <div class="admin-sub">Destructive actions — cannot be undone</div>
+        </div>
+      </div>
+
+      <div class="card" style="border-color:var(--red);margin-bottom:16px">
+        <div class="section-header" style="color:var(--red)">
+          <svg class="icon" style="width:16px;height:16px" aria-hidden="true"><use href="#icon-warning"/></svg>
+          Clear Leaderboard
+        </div>
+        <p style="font-size:0.85rem;color:var(--text-sec);margin-bottom:14px">Deletes ALL leaderboard entries. Players keep their local chip balance but are removed from the board.</p>
+        <button class="btn btn-ghost btn-sm" style="color:var(--red)" onclick="confirmClearLeaderboard()">Delete All Leaderboard Data</button>
+      </div>
+
+      <div class="card" style="border-color:var(--red);margin-bottom:16px">
+        <div class="section-header" style="color:var(--red)">
+          <svg class="icon" style="width:16px;height:16px" aria-hidden="true"><use href="#icon-warning"/></svg>
+          Clear Activity Feed
+        </div>
+        <p style="font-size:0.85rem;color:var(--text-sec);margin-bottom:14px">Wipes all activity/win log entries from Firebase.</p>
+        <button class="btn btn-ghost btn-sm" style="color:var(--red)" onclick="confirmClearActivity()">Delete All Activity</button>
+      </div>
+
+      <div class="card" style="border-color:var(--red);margin-bottom:16px">
+        <div class="section-header" style="color:var(--red)">
+          <svg class="icon" style="width:16px;height:16px" aria-hidden="true"><use href="#icon-warning"/></svg>
+          Clear Biggest Wins
+        </div>
+        <p style="font-size:0.85rem;color:var(--text-sec);margin-bottom:14px">Wipes the biggest wins list.</p>
+        <button class="btn btn-ghost btn-sm" style="color:var(--red)" onclick="confirmClear('biggest_wins','Biggest Wins')">Delete Biggest Wins</button>
+      </div>
+
+      <div class="card" style="border-color:var(--red)">
+        <div class="section-header" style="color:var(--red)">
+          <svg class="icon" style="width:16px;height:16px" aria-hidden="true"><use href="#icon-warning"/></svg>
+          Delete a Leaderboard Entry
+        </div>
+        <p style="font-size:0.85rem;color:var(--text-sec);margin-bottom:14px">Remove a specific username from the leaderboard.</p>
+        <div class="action-row">
+          <input type="text" id="ban-username" class="input-sm" placeholder="exact username" style="width:200px"/>
+          <button class="btn btn-ghost btn-sm" style="color:var(--red)" onclick="deleteUser()">Remove from Leaderboard</button>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyBkok672ukiiFdpSWdXrVhkJWu4fDNEeVw",
+  authDomain: "gamew-6cd14.firebaseapp.com",
+  databaseURL: "https://gamew-6cd14-default-rtdb.firebaseio.com",
+  projectId: "gamew-6cd14",
+  storageBucket: "gamew-6cd14.firebasestorage.app",
+  messagingSenderId: "634476044291",
+  appId: "1:634476044291:web:83732c9b663693c584ae36",
+};
+
+let db, auth, currentUser;
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+
+(async () => {
+  firebase.initializeApp(FIREBASE_CONFIG);
+  db = firebase.database();
+  auth = firebase.auth();
+
+  // Login form
+  document.getElementById('admin-login-form').addEventListener('submit', async e => {
+    e.preventDefault();
+    const email = document.getElementById('admin-email').value.trim();
+    const pw    = document.getElementById('admin-password').value;
+    const btn   = document.getElementById('admin-login-btn');
+    const err   = document.getElementById('admin-login-err');
+    btn.disabled = true; btn.textContent = '...';
+    err.style.display = 'none';
+    try {
+      await auth.signInWithEmailAndPassword(email, pw);
+    } catch(e) {
+      err.style.display = 'block';
+      err.textContent = friendlyErr(e.code);
+      btn.disabled = false; btn.textContent = 'Sign In';
+    }
+  });
+
+  auth.onAuthStateChanged(user => {
+    currentUser = user;
+    if (user) {
+      document.getElementById('admin-auth-wall').style.display = 'none';
+      document.getElementById('admin-app').style.display = 'grid';
+      document.getElementById('admin-user-info').textContent = user.email;
+      loadOverview();
+      wireNav();
+      subscribeActivity();
+      subscribeJackpot();
+    } else {
+      document.getElementById('admin-auth-wall').style.display = 'flex';
+      document.getElementById('admin-app').style.display = 'none';
+    }
+  });
+})();
+
+function friendlyErr(code) {
+  const m = {
+    'auth/invalid-credential': 'Invalid email or password.',
+    'auth/wrong-password':     'Incorrect password.',
+    'auth/user-not-found':     'No account found.',
+    'auth/too-many-requests':  'Too many attempts — wait a moment.',
+  };
+  return m[code] || 'Sign in failed.';
+}
+
+async function adminSignOut() {
+  await auth.signOut();
+}
+
+// ── Nav ───────────────────────────────────────────────────────────────────────
+
+function wireNav() {
+  document.querySelectorAll('.admin-nav-item').forEach(item => {
+    item.addEventListener('click', () => {
+      document.querySelectorAll('.admin-nav-item').forEach(n => n.classList.remove('active'));
+      document.querySelectorAll('.admin-page').forEach(p => p.classList.remove('active'));
+      item.classList.add('active');
+      const page = document.getElementById('page-' + item.dataset.page);
+      if (page) page.classList.add('active');
+
+      // Load data for the page
+      if (item.dataset.page === 'overview') loadOverview();
+      if (item.dataset.page === 'users')    loadUsers();
+      if (item.dataset.page === 'leaderboard') loadLeaderboard();
+    });
+  });
+}
+
+// ── Toast ─────────────────────────────────────────────────────────────────────
+
+function toast(msg, type = 'info') {
+  const c = document.getElementById('toast-container');
+  const t = document.createElement('div');
+  t.className = `toast toast-${type}`;
+  t.style.cssText = 'pointer-events:auto';
+  t.innerHTML = `<div class="toast-content"><div class="toast-msg">${msg}</div></div>
+    <button class="toast-close" onclick="this.parentElement.remove()">
+      <svg class="icon" aria-hidden="true"><use href="#icon-close"/></svg>
+    </button>`;
+  c.appendChild(t);
+  setTimeout(() => { t.classList.add('hiding'); setTimeout(() => t.remove(), 300); }, 4000);
+}
+
+function timeAgo(ts) {
+  const s = Math.floor((Date.now() - ts) / 1000);
+  if (s < 60) return s + 's ago';
+  const m = Math.floor(s / 60);
+  if (m < 60) return m + 'm ago';
+  return Math.floor(m / 60) + 'h ago';
+}
+
+// ── Overview ──────────────────────────────────────────────────────────────────
+
+async function loadOverview() {
+  const stats = document.getElementById('overview-stats');
+
+  // Leaderboard count
+  const lbSnap = await db.ref('leaderboard').once('value');
+  const lbCount = lbSnap.numChildren();
+
+  // Activity count
+  const actSnap = await db.ref('activity').once('value');
+  const actCount = actSnap.numChildren();
+
+  // Wins count
+  const winsSnap = await db.ref('biggest_wins').once('value');
+  const winsCount = winsSnap.numChildren();
+
+  // Jackpot
+  const jpSnap = await db.ref('jackpot').once('value');
+  const jp = jpSnap.val() || 0;
+
+  stats.innerHTML = `
+    <div class="stat-card"><div class="stat-card-num" style="color:var(--gold)">${lbCount}</div><div class="stat-card-lbl">Leaderboard Entries</div></div>
+    <div class="stat-card"><div class="stat-card-num" style="color:var(--cyan)">${actCount}</div><div class="stat-card-lbl">Activity Events</div></div>
+    <div class="stat-card"><div class="stat-card-num" style="color:var(--green)">${winsCount}</div><div class="stat-card-lbl">Wins Logged</div></div>
+    <div class="stat-card"><div class="stat-card-num" style="color:var(--gold)">${jp.toLocaleString()}</div><div class="stat-card-lbl">Jackpot</div></div>
+  `;
+
+  // Top 5
+  const top5Snap = await db.ref('leaderboard').orderByChild('balance').limitToLast(5).once('value');
+  const top5 = [];
+  top5Snap.forEach(c => top5.push(c.val()));
+  top5.reverse();
+  document.getElementById('overview-top5').innerHTML = top5.length ? top5.map((r, i) => `
+    <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">
+      <span style="font-weight:800;color:var(--gold);width:20px;text-align:center">${i+1}</span>
+      <span style="flex:1;font-weight:600">${r.username}</span>
+      <span class="mono" style="color:var(--gold)">${(r.balance||0).toLocaleString()}</span>
+    </div>`).join('')
+    : '<div style="text-align:center;padding:20px;color:var(--text-sec)">No data yet</div>';
+
+  // Recent activity (last 10)
+  const recentSnap = await db.ref('activity').orderByChild('timestamp').limitToLast(10).once('value');
+  const recent = [];
+  recentSnap.forEach(c => recent.push(c.val()));
+  recent.reverse();
+  document.getElementById('overview-activity').innerHTML = recent.length ? recent.map(r => `
+    <div class="log-entry">
+      <span class="log-time">${r.timestamp ? timeAgo(r.timestamp) : ''}</span>
+      <span><strong style="color:var(--cyan)">${r.player}</strong> won <strong style="color:var(--gold)">${(r.amount||0).toLocaleString()}</strong> on ${r.game}</span>
+    </div>`).join('')
+    : '<div style="text-align:center;padding:20px;color:var(--text-sec)">No activity yet</div>';
+}
+
+// ── Users ─────────────────────────────────────────────────────────────────────
+
+async function loadUsers() {
+  const tbody = document.getElementById('users-tbody');
+  tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--text-sec)">Fetching users via Firebase REST API...</td></tr>';
+
+  // Firebase Auth user list requires Admin SDK or REST with ID token
+  // We'll use the current user's ID token to call the Firebase Auth REST API
+  try {
+    const token = await currentUser.getIdToken();
+    const projectId = 'gamew-6cd14';
+    const res = await fetch(
+      `https://identitytoolkit.googleapis.com/v1/projects/${projectId}/accounts:query`,
+      {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ returnUserInfo: true })
+      }
+    );
+    const data = await res.json();
+
+    if (data.userInfo && data.userInfo.length) {
+      tbody.innerHTML = data.userInfo.map(u => `
+        <tr>
+          <td>${u.email || '—'}</td>
+          <td>${u.displayName || '<span style="color:var(--text-dim)">—</span>'}</td>
+          <td class="mono" style="font-size:0.72rem;color:var(--text-dim)">${u.localId}</td>
+          <td style="color:var(--text-sec)">${u.createdAt ? new Date(+u.createdAt).toLocaleDateString() : '—'}</td>
+          <td style="color:var(--text-sec)">${u.lastLoginAt ? new Date(+u.lastLoginAt).toLocaleDateString() : '—'}</td>
+          <td>
+            <button class="btn btn-ghost btn-sm" style="color:var(--red);font-size:0.75rem"
+              onclick="removeLBEntry('${(u.displayName||'').replace(/'/g,"\\'")}')">
+              Remove from LB
+            </button>
+          </td>
+        </tr>`).join('');
+    } else {
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--text-sec)">No users found or insufficient permissions.<br><small style="color:var(--text-dim)">Admin SDK access required for full user list.</small></td></tr>';
+    }
+  } catch(e) {
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--text-sec)">
+      Could not load users — Admin SDK required.<br>
+      <small style="color:var(--text-dim)">Manage users directly in the <a href="https://console.firebase.google.com/project/gamew-6cd14/authentication/users" target="_blank" style="color:var(--cyan)">Firebase Console</a>.</small>
+    </td></tr>`;
+  }
+}
+
+// ── Leaderboard ───────────────────────────────────────────────────────────────
+
+async function loadLeaderboard() {
+  const tbody = document.getElementById('lb-tbody');
+  tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--text-sec)">Loading...</td></tr>';
+  const snap = await db.ref('leaderboard').orderByChild('balance').limitToLast(100).once('value');
+  const rows = [];
+  snap.forEach(c => rows.push({ key: c.key, ...c.val() }));
+  rows.reverse();
+  if (!rows.length) {
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--text-sec)">No entries yet</td></tr>';
+    return;
+  }
+  tbody.innerHTML = rows.map((r, i) => `
+    <tr>
+      <td style="color:var(--text-dim)">${i+1}</td>
+      <td style="font-weight:700">${r.username}</td>
+      <td class="mono" style="color:var(--gold)">${(r.balance||0).toLocaleString()}</td>
+      <td class="mono" style="color:var(--cyan)">${(r.xp||0).toLocaleString()}</td>
+      <td>${r.level ?? '—'}</td>
+      <td style="color:var(--text-sec)">${r.gamesPlayed||0}</td>
+      <td>
+        <button class="btn btn-ghost btn-sm" style="color:var(--red);font-size:0.75rem"
+          onclick="removeLBEntry('${r.key}')">Remove</button>
+      </td>
+    </tr>`).join('');
+}
+
+async function removeLBEntry(key) {
+  if (!confirm(`Remove "${key}" from leaderboard?`)) return;
+  await db.ref(`leaderboard/${key}`).remove();
+  toast(`Removed ${key} from leaderboard`, 'win');
+  loadLeaderboard();
+}
+
+function confirmClearLeaderboard() {
+  if (!confirm('Delete ALL leaderboard data? This cannot be undone.')) return;
+  db.ref('leaderboard').remove().then(() => {
+    toast('Leaderboard cleared', 'win');
+    loadLeaderboard();
+    loadOverview();
+  });
+}
+
+// ── Activity ──────────────────────────────────────────────────────────────────
+
+function subscribeActivity() {
+  db.ref('activity').orderByChild('timestamp').limitToLast(100).on('value', snap => {
+    const items = [];
+    snap.forEach(c => items.push({ key: c.key, ...c.val() }));
+    items.reverse();
+
+    const el = document.getElementById('activity-log');
+    if (!el) return;
+    if (!items.length) {
+      el.innerHTML = '<div style="text-align:center;padding:32px;color:var(--text-sec)">No activity yet</div>';
+      return;
+    }
+    el.innerHTML = items.map(r => `
+      <div class="log-entry">
+        <span class="log-time">${r.timestamp ? timeAgo(r.timestamp) : ''}</span>
+        <span>
+          <strong style="color:var(--cyan)">${r.player}</strong> won
+          <strong style="color:var(--gold)">${(r.amount||0).toLocaleString()} chips</strong>
+          on <strong>${r.game}</strong>
+        </span>
+      </div>`).join('');
+  });
+}
+
+function confirmClearActivity() {
+  if (!confirm('Delete ALL activity feed data?')) return;
+  db.ref('activity').remove().then(() => toast('Activity feed cleared', 'win'));
+}
+
+// ── Jackpot ───────────────────────────────────────────────────────────────────
+
+function subscribeJackpot() {
+  db.ref('jackpot').on('value', snap => {
+    const val = snap.val() || 0;
+    const el = document.getElementById('jackpot-display-admin');
+    if (el) el.textContent = val.toLocaleString();
+    const inp = document.getElementById('jackpot-new-val');
+    if (inp && !inp.matches(':focus')) inp.value = val;
+  });
+}
+
+function setJackpotVal(v) {
+  document.getElementById('jackpot-new-val').value = v;
+  setJackpot();
+}
+
+async function setJackpot() {
+  const val = parseInt(document.getElementById('jackpot-new-val').value, 10);
+  if (isNaN(val) || val < 0) { toast('Invalid jackpot value', 'loss'); return; }
+  await db.ref('jackpot').set(val);
+  toast(`Jackpot set to ${val.toLocaleString()}`, 'win');
+}
+
+// ── Danger ────────────────────────────────────────────────────────────────────
+
+async function confirmClear(node, label) {
+  if (!confirm(`Delete ALL ${label} data?`)) return;
+  await db.ref(node).remove();
+  toast(`${label} cleared`, 'win');
+  loadOverview();
+}
+
+async function deleteUser() {
+  const name = document.getElementById('ban-username').value.trim();
+  if (!name) { toast('Enter a username', 'loss'); return; }
+  if (!confirm(`Remove "${name}" from leaderboard?`)) return;
+  const key = name.replace(/[.#$[\]]/g, '_');
+  await db.ref(`leaderboard/${key}`).remove();
+  toast(`Removed "${name}" from leaderboard`, 'win');
+  document.getElementById('ban-username').value = '';
+}
+</script>
+</body>
+</html>

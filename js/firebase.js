@@ -54,7 +54,7 @@ async function submitScore(username, balance, biggestWin, game) {
       });
     }
 
-    // Update biggest wins list
+    // Only log wins with a real game name
     if (biggestWin > 0 && game) {
       const winRef = db.ref('biggest_wins').push();
       await winRef.set({
@@ -63,15 +63,15 @@ async function submitScore(username, balance, biggestWin, game) {
         game,
         timestamp: firebase.database.ServerValue.TIMESTAMP,
       });
-    }
 
-    // Add to activity feed
-    await db.ref('activity').push({
-      player: username,
-      amount: biggestWin || balance,
-      game: game || 'Casino',
-      timestamp: firebase.database.ServerValue.TIMESTAMP,
-    });
+      // Activity feed — only real game wins
+      await db.ref('activity').push({
+        player: username,
+        amount: biggestWin,
+        game,
+        timestamp: firebase.database.ServerValue.TIMESTAMP,
+      });
+    }
 
   } catch(e) {
     console.warn('Firebase submit failed:', e);
