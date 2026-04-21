@@ -6,7 +6,7 @@
 <title>Lobby — LuckyDev Casino</title>
 <meta name="description" content="LuckyDev Casino — Free play-money casino games. No real money involved."/>
 <link rel="manifest" href="manifest.json"/>
-<meta name="theme-color" content="#0a0a0f"/>
+<meta name="theme-color" content="#F5F1E8"/>
 <link rel="stylesheet" href="css/main.css"/>
 <link rel="stylesheet" href="css/animations.css"/>
 <script>
@@ -367,6 +367,21 @@
   await FirebaseDB.init();
   renderLBPreview();
   subscribeJackpotDisplay();
+
+  // Live ticker — real Firebase activity, no fake people
+  FirebaseDB.subscribeActivity(items => {
+    const tickerInner = document.getElementById('ticker-inner');
+    if (!tickerInner || !items.length) return;
+    const doubled = [...items, ...items]; // double for seamless CSS scroll loop
+    tickerInner.innerHTML = doubled.map(m =>
+      `<span class="ticker-item">
+        <span class="name">${m.player}</span>
+        <span class="game"> won </span>
+        <span class="amount">${(m.amount||0).toLocaleString()} chips</span>
+        <span class="game"> on ${m.game}</span>
+      </span>`
+    ).join('');
+  }, 30);
 
   // Check rebuy
   checkRebuyDisplay();

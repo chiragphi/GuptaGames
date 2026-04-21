@@ -97,6 +97,20 @@ const Towers = (() => {
       Audio.playMineExplosion();
       shakeScreen();
       if (resultEl) { resultEl.textContent = 'Trap! You fell!'; resultEl.className = 'game-result lose'; }
+      // Show prominent game-over overlay
+      setTimeout(() => {
+        const ov = document.createElement('div');
+        ov.className = 'towers-gameover-overlay';
+        ov.innerHTML = `
+          <div class="towers-gameover-box">
+            <svg class="icon" style="width:64px;height:64px;color:var(--red);margin-bottom:12px" aria-hidden="true"><use href="#icon-skull"/></svg>
+            <div class="towers-gameover-title">You Fell!</div>
+            <div class="towers-gameover-sub">Reached floor ${currentLevel} — you hit a trap.</div>
+            <button class="btn btn-gold" onclick="this.closest('.towers-gameover-overlay').remove();Audio.playClick()">Try Again</button>
+          </div>`;
+        document.body.appendChild(ov);
+        ov.addEventListener('click', e => { if (e.target === ov) ov.remove(); });
+      }, 400);
     }
   }
 

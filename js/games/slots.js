@@ -214,7 +214,11 @@ const Slots = (() => {
     FirebaseDB.incrementJackpot(Math.floor(betAmount * 0.05));
 
     const spinBtn = document.getElementById('spin-btn');
-    if (spinBtn) spinBtn.disabled = true;
+    if (spinBtn) {
+      spinBtn.disabled = true;
+      spinBtn.textContent = 'SPINNING...';
+      spinBtn.classList.add('spinning-feedback');
+    }
 
     // Generate outcome (with near-miss chance on losses)
     grid = generateGrid(true);
@@ -280,7 +284,11 @@ const Slots = (() => {
       }
 
       spinning = false;
-      if (spinBtn) spinBtn.disabled = false;
+      if (spinBtn) {
+        spinBtn.disabled = false;
+        spinBtn.textContent = 'SPIN';
+        spinBtn.classList.remove('spinning-feedback');
+      }
 
       // Auto-spin
       if (autoSpin && autoSpinCount !== 0) {

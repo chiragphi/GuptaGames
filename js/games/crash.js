@@ -9,20 +9,16 @@ const Crash = (() => {
   let betPlaced = false;
   let autoCashout = 0;
   let betAmount = 10;
-  let animFrame = null;
   let startTime = 0;
   let graphPoints = [];
   let crashHistory = [];
   let tickInterval = null;
-
-  const CRASH_TARGET_MAX = 100;
+  let cdInt = null; // countdown interval — stored for cleanup
 
   function getCrashPoint() {
-    // House edge ~3%
     const r = Math.random();
-    // ADDICTION: Hot streak slightly delays crash
     const bias = Addiction.isHotStreak() ? 1.15 : 1.0;
-    return Math.max(1.0, (1 / (1 - r * 0.97)) * bias);
+    return Math.max(1.01, (1 / (1 - r * 0.97)) * bias);
   }
 
   function formatMult(m) { return m.toFixed(2) + 'x'; }
@@ -42,15 +38,19 @@ const Crash = (() => {
     }).join('');
   }
 
+  // BUG FIX: always wrap draw calls in save/restore so shadow & textAlign never leak
   function drawGraph() {
     if (!canvas || !ctx) return;
+
+    ctx.save(); // ← matches ctx.restore() at end
+
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     const W = canvas.width, H = canvas.height;
     const PAD = 40;
 
-    // Background grid
-    ctx.strokeStyle = 'rgba(255,255,255,0.04)';
+    // Grid — dark lines on dark canvas
+    ctx.strokeStyle = 'rgba(255,255,255,0.06)';
     ctx.lineWidth = 1;
     for (let i = 0; i < 10; i++) {
       ctx.beginPath();
@@ -63,48 +63,63 @@ const Crash = (() => {
       ctx.stroke();
     }
 
-    if (graphPoints.length < 2) return;
+    if (graphPoints.length < 2) { ctx.restore(); return; }
 
+    // Snapshot the points array to avoid mutation during draw
+    const pts = graphPoints.slice();
+    const elapsed = pts[pts.length - 1].t;
     const maxMult = Math.max(multiplier * 1.2, 3);
-    const elapsed = (Date.now() - startTime) / 1000;
+    const lineColor = crashed ? '#B03020' : '#2D6A4F';
+    const fillColor = crashed ? 'rgba(176,48,32,0.18)' : 'rgba(45,106,79,0.18)';
+
+    // BUG FIX: set shadow BEFORE beginPath, reset to 0 before fill so shadow doesn't bleed
+    ctx.shadowColor = lineColor;
+    ctx.shadowBlur = 10;
 
     // Draw curve
     ctx.beginPath();
-    ctx.strokeStyle = crashed ? '#FF3B30' : '#30D158';
+    ctx.strokeStyle = lineColor;
     ctx.lineWidth = 3;
-    ctx.shadowColor = crashed ? '#FF3B30' : '#30D158';
-    ctx.shadowBlur = 8;
-
-    graphPoints.forEach((pt, i) => {
-      const x = PAD + ((W - PAD) * (pt.t / Math.max(elapsed, 1)));
-      const y = (H - PAD) - ((H - PAD) * Math.min((pt.m - 1) / (maxMult - 1), 1));
+    pts.forEach((pt, i) => {
+      const x = PAD + ((W - PAD) * (pt.t / Math.max(elapsed, 0.001)));
+      const y = (H - PAD) - ((H - PAD) * Math.min((pt.m - 1) / Math.max(maxMult - 1, 0.001), 1));
       if (i === 0) ctx.moveTo(x, y);
       else ctx.lineTo(x, y);
     });
     ctx.stroke();
 
-    // Fill under curve
+    // BUG FIX: reset shadow before fill so fill doesn't get shadow blur
     ctx.shadowBlur = 0;
-    const lastPt = graphPoints[graphPoints.length - 1];
-    const lx = PAD + ((W - PAD) * (lastPt.t / Math.max(elapsed, 1)));
-    const ly = (H - PAD) - ((H - PAD) * Math.min((lastPt.m - 1) / (maxMult - 1), 1));
+    ctx.shadowColor = 'transparent';
 
+    // Fill under curve
+    const lastPt = pts[pts.length - 1];
+    const lx = PAD + ((W - PAD) * (lastPt.t / Math.max(elapsed, 0.001)));
+    const ly = (H - PAD) - ((H - PAD) * Math.min((lastPt.m - 1) / Math.max(maxMult - 1, 0.001), 1));
+
+    ctx.beginPath();
+    pts.forEach((pt, i) => {
+      const x = PAD + ((W - PAD) * (pt.t / Math.max(elapsed, 0.001)));
+      const y = (H - PAD) - ((H - PAD) * Math.min((pt.m - 1) / Math.max(maxMult - 1, 0.001), 1));
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    });
     ctx.lineTo(lx, H - PAD);
     ctx.lineTo(PAD, H - PAD);
     ctx.closePath();
     const grad = ctx.createLinearGradient(0, 0, 0, H);
-    grad.addColorStop(0, crashed ? 'rgba(255,59,48,0.15)' : 'rgba(48,209,88,0.15)');
+    grad.addColorStop(0, fillColor);
     grad.addColorStop(1, 'rgba(0,0,0,0)');
     ctx.fillStyle = grad;
     ctx.fill();
 
-    // Current multiplier label on graph
-    ctx.fillStyle = crashed ? '#FF3B30' : '#30D158';
-    ctx.font = 'bold 24px monospace';
+    // Multiplier label — BUG FIX: textAlign reset by ctx.restore()
+    ctx.fillStyle = lineColor;
+    ctx.font = 'bold 22px monospace';
     ctx.textAlign = 'center';
-    ctx.fillText(formatMult(multiplier), lx, ly - 12);
+    ctx.fillText(formatMult(multiplier), Math.min(lx, W - 60), Math.max(ly - 14, 24));
 
-    ctx.restore && ctx.restore();
+    ctx.restore(); // ← restores textAlign, shadowColor, shadowBlur, etc.
   }
 
   function updateMultiplierDisplay() {
@@ -115,7 +130,6 @@ const Crash = (() => {
     if (crashed) el.classList.add('crashed');
     else if (multiplier > 5) el.classList.add('danger');
 
-    // Cashout button urgency
     const btn = document.getElementById('cashout-btn');
     if (btn && running && !crashed && !cashedOut) {
       if (multiplier > 3) btn.classList.add('cashout-pulse');
@@ -125,6 +139,10 @@ const Crash = (() => {
 
   function startRound() {
     if (running) return;
+
+    // BUG FIX: cancel any pending countdown before starting a new round
+    if (cdInt) { clearInterval(cdInt); cdInt = null; }
+
     running = true;
     crashed = false;
     cashedOut = false;
@@ -139,35 +157,40 @@ const Crash = (() => {
     if (cashoutBtn) { cashoutBtn.disabled = false; cashoutBtn.classList.add('cashout-pulse'); }
     if (betBtn) betBtn.disabled = true;
 
-    document.getElementById('crash-status') && (document.getElementById('crash-status').textContent = 'FLYING...');
+    setStatus('FLYING...');
 
     tickInterval = setInterval(() => {
       const elapsed = (Date.now() - startTime) / 1000;
       multiplier = Math.pow(Math.E, elapsed * 0.12);
 
-      graphPoints.push({ t: elapsed, m: multiplier });
-      if (graphPoints.length > 200) graphPoints.shift();
+      // BUG FIX: only keep 300 points max; never shift — just cap so x-axis stays stable
+      if (graphPoints.length < 300) {
+        graphPoints.push({ t: elapsed, m: multiplier });
+      }
 
       updateMultiplierDisplay();
       Audio.playCrashTick(multiplier);
       addFakeChat();
 
-      // Auto-cashout
       if (betPlaced && !cashedOut && autoCashout > 1 && multiplier >= autoCashout) {
         cashOut();
       }
 
-      // Check crash
       if (multiplier >= crashPoint) {
         boom();
+      } else {
+        drawGraph();
       }
-
-      drawGraph();
     }, 50);
   }
 
+  function setStatus(text) {
+    const el = document.getElementById('crash-status');
+    if (el) el.textContent = text;
+  }
+
   function boom() {
-    clearInterval(tickInterval);
+    clearInterval(tickInterval); tickInterval = null;
     crashed = true;
     running = false;
 
@@ -178,8 +201,7 @@ const Crash = (() => {
       shakeScreen();
     }
 
-    const status = document.getElementById('crash-status');
-    if (status) status.textContent = `CRASHED at ${formatMult(multiplier)}`;
+    setStatus(`CRASHED at ${formatMult(multiplier)}`);
 
     const cashoutBtn = document.getElementById('cashout-btn');
     if (cashoutBtn) { cashoutBtn.disabled = true; cashoutBtn.classList.remove('cashout-pulse'); }
@@ -189,21 +211,21 @@ const Crash = (() => {
     addToHistory(parseFloat(multiplier.toFixed(2)));
     betPlaced = false;
 
-    // ADDICTION: Show last round result
     const lastRound = document.getElementById('last-round');
     if (lastRound) lastRound.textContent = `Last round: ${formatMult(multiplier)}`;
 
-    // Next round countdown
+    // BUG FIX: countdown shows 5, 4, 3, 2, 1 then fires (decrement AFTER render)
     const betBtn = document.getElementById('bet-btn');
     let countdown = 5;
-    const cdEl = document.getElementById('crash-status');
-    const cdInt = setInterval(() => {
+    setStatus(`Next round in ${countdown}s...`);
+    cdInt = setInterval(() => {
       countdown--;
-      if (cdEl) cdEl.textContent = `Next round in ${countdown}s...`;
       if (countdown <= 0) {
-        clearInterval(cdInt);
-        if (cdEl) cdEl.textContent = 'Place your bet!';
+        clearInterval(cdInt); cdInt = null;
+        setStatus('Place your bet!');
         if (betBtn) betBtn.disabled = false;
+      } else {
+        setStatus(`Next round in ${countdown}s...`);
       }
     }, 1000);
   }
@@ -245,15 +267,12 @@ const Crash = (() => {
 
     const cashoutBtn = document.getElementById('cashout-btn');
     if (cashoutBtn) { cashoutBtn.disabled = true; cashoutBtn.classList.remove('cashout-pulse'); }
-
-    const status = document.getElementById('crash-status');
-    if (status) status.textContent = `Cashed out at ${formatMult(mult)} — +${winAmount} chips!`;
+    setStatus(`Cashed out at ${formatMult(mult)} — +${winAmount} chips!`);
   }
 
   // ===== FAKE CHAT =====
   const CHAT_NAMES = ['SlotKing','GoldRush','LuckyAce','CrashPro','BetMaster','WildCard'];
   const CHAT_MSGS_WIN = ['cashed out!','nice one!','gg!','moon!','ez money'];
-  const CHAT_MSGS_LOSE = ['rip','oof','should have cashed earlier','got got','too greedy'];
 
   function addFakeChat() {
     if (Math.random() > 0.04) return;
@@ -277,30 +296,37 @@ const Crash = (() => {
     if (!canvas) return;
     ctx = canvas.getContext('2d');
 
-    // Resize
+    // BUG FIX: use ResizeObserver so canvas size is correct even on mobile layout shifts
     function resizeCanvas() {
-      canvas.width = canvas.offsetWidth;
-      canvas.height = canvas.offsetHeight || 320;
-      drawGraph();
+      const w = canvas.offsetWidth;
+      const h = canvas.offsetHeight || 320;
+      if (canvas.width !== w || canvas.height !== h) {
+        canvas.width = w;
+        canvas.height = h;
+        drawGraph();
+      }
     }
     resizeCanvas();
-    window.addEventListener('resize', resizeCanvas);
+    const ro = new ResizeObserver(resizeCanvas);
+    ro.observe(canvas);
 
-    // Seed history
+    // Seed history with realistic values
     for (let i = 0; i < 20; i++) {
       const r = Math.random();
-      crashHistory.push(parseFloat((1 / (1 - r * 0.97)).toFixed(2)));
+      crashHistory.push(parseFloat(Math.max(1.01, 1 / (1 - r * 0.97)).toFixed(2)));
     }
     renderHistory();
 
     document.getElementById('bet-btn')?.addEventListener('click', placeBet);
     document.getElementById('cashout-btn')?.addEventListener('click', cashOut);
 
-    // ADDICTION: show last round
     const lastRound = document.getElementById('last-round');
     if (lastRound && crashHistory.length > 0) {
       lastRound.textContent = `Last round: ${formatMult(crashHistory[0])}`;
     }
+
+    setStatus('Place your bet!');
+    drawGraph();
   }
 
   return { init };

@@ -2,29 +2,32 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
-  --bg-deep:    #0a0a0f;
-  --bg-card:    #13131a;
-  --bg-panel:   #1a1a2e;
-  --gold:       #FFD700;
-  --gold-dim:   #B8860B;
-  --cyan:       #00FFFF;
-  --cyan-dim:   #006666;
-  --red:        #FF3B30;
-  --green:      #30D158;
-  --purple:     #BF5AF2;
-  --orange:     #FF9F0A;
-  --text-pri:   #F0F0FF;
-  --text-sec:   #8888aa;
-  --text-dim:   #444466;
-  --border:     #222240;
-  --glow-gold:  0 0 8px #FFD700, 0 0 24px #FFD70066;
-  --glow-cyan:  0 0 8px #00FFFF, 0 0 24px #00FFFF66;
-  --glow-red:   0 0 8px #FF3B30, 0 0 24px #FF3B3066;
-  --glow-green: 0 0 8px #30D158, 0 0 24px #30D15866;
+  /* ── Warm light palette ── */
+  --bg-deep:    #F5F1E8;
+  --bg-card:    #EDE7D5;
+  --bg-panel:   #E8E0CC;
+  --gold:       #C9973A;
+  --gold-dim:   #A89880;
+  --cyan:       #1F4032;
+  --cyan-dim:   #2E6048;
+  --red:        #B03020;
+  --green:      #2D6A4F;
+  --purple:     #7B4F92;
+  --orange:     #C9973A;
+  --text-pri:   #2A2420;
+  --text-sec:   #6B6558;
+  --text-dim:   #A89880;
+  --border:     #C8C0A8;
+  --border-str: #A89880;
+  --glow-gold:  0 2px 10px rgba(201,151,58,0.28);
+  --glow-cyan:  0 2px 10px rgba(31,64,50,0.28);
+  --glow-red:   0 2px 10px rgba(176,48,32,0.28);
+  --glow-green: 0 2px 10px rgba(45,106,79,0.28);
   --radius-sm:  6px;
   --radius-md:  12px;
   --radius-lg:  20px;
   --transition: 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+  --font-body:  'Segoe UI', system-ui, -apple-system, sans-serif;
   --font-main:  'Segoe UI', system-ui, -apple-system, sans-serif;
   --font-mono:  'SF Mono', 'Consolas', monospace;
 }
@@ -72,7 +75,7 @@ input:focus, select:focus { border-color: var(--gold); }
   position: sticky;
   top: 0;
   z-index: 100;
-  background: rgba(10,10,15,0.92);
+  background: rgba(245,241,232,0.96);
   backdrop-filter: blur(16px);
   border-bottom: 1px solid var(--border);
   padding: 0 20px;
@@ -218,18 +221,18 @@ input:focus, select:focus { border-color: var(--gold); }
 .btn:active { transform: scale(0.97); }
 
 .btn-gold {
-  background: linear-gradient(135deg, #FFD700, #FFA500);
-  color: #1a0a00;
-  box-shadow: 0 4px 16px #FFD70040;
+  background: linear-gradient(135deg, #C9973A, #A07828);
+  color: #fff;
+  box-shadow: 0 4px 16px rgba(201,151,58,0.35);
 }
-.btn-gold:hover { box-shadow: var(--glow-gold), 0 4px 16px #FFD70040; transform: translateY(-1px); }
+.btn-gold:hover { box-shadow: var(--glow-gold), 0 4px 16px rgba(201,151,58,0.35); transform: translateY(-1px); }
 
 .btn-cyan {
-  background: linear-gradient(135deg, #00FFFF, #0088FF);
-  color: #001a1a;
-  box-shadow: 0 4px 16px #00FFFF30;
+  background: linear-gradient(135deg, #1F4032, #2E6048);
+  color: #fff;
+  box-shadow: 0 4px 16px rgba(31,64,50,0.35);
 }
-.btn-cyan:hover { box-shadow: var(--glow-cyan), 0 4px 16px #00FFFF30; transform: translateY(-1px); }
+.btn-cyan:hover { box-shadow: var(--glow-cyan), 0 4px 16px rgba(31,64,50,0.35); transform: translateY(-1px); }
 
 .btn-ghost {
   background: transparent;
@@ -239,14 +242,14 @@ input:focus, select:focus { border-color: var(--gold); }
 .btn-ghost:hover { border-color: var(--gold); color: var(--gold); }
 
 .btn-danger {
-  background: linear-gradient(135deg, #FF3B30, #CC2200);
+  background: linear-gradient(135deg, #B03020, #8B1F10);
   color: white;
 }
 .btn-danger:hover { box-shadow: var(--glow-red); }
 
 .btn-green {
-  background: linear-gradient(135deg, #30D158, #009933);
-  color: #001100;
+  background: linear-gradient(135deg, #2D6A4F, #1F4032);
+  color: #fff;
 }
 .btn-green:hover { box-shadow: var(--glow-green); }
 
@@ -758,7 +761,7 @@ input:focus, select:focus { border-color: var(--gold); }
   left: 50%;
   transform: translate(-50%, -50%) scale(0.8);
   z-index: 5000;
-  background: linear-gradient(135deg, #1a0f00, #0a0a1a);
+  background: linear-gradient(135deg, #EDE7D5, #E8E0CC);
   border: 2px solid var(--gold);
   border-radius: var(--radius-lg);
   padding: 32px 40px;
@@ -828,7 +831,7 @@ input:focus, select:focus { border-color: var(--gold); }
   font-size: 0.875rem;
 }
 .level-badge.bronze { background: #3d2200; border: 1px solid #cd7f32; color: #cd7f32; }
-.level-badge.silver { background: #1a1a1a; border: 1px solid #aaa; color: #aaa; }
+.level-badge.silver { background: #D6CCBA; border: 1px solid #A89880; color: #6B6558; }
 .level-badge.gold-badge { background: #2a1e00; border: 1px solid #FFD700; color: #FFD700; }
 .level-badge.platinum { background: #0a1a2a; border: 1px solid #00BFFF; color: #00BFFF; }
 .level-badge.diamond { background: #001a2a; border: 1px solid #00FFFF; color: #00FFFF; }

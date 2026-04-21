@@ -419,8 +419,20 @@ const Audio = (() => {
     }
   }
 
+  // Unlock AudioContext on first user interaction (required by browsers)
+  function unlockAudio() {
+    document.addEventListener('click', () => {
+      if (ctx && ctx.state === 'suspended') ctx.resume();
+      if (!ctx) getCtx(); // creates and resumes
+    }, { once: true, passive: true });
+    document.addEventListener('keydown', () => {
+      if (ctx && ctx.state === 'suspended') ctx.resume();
+    }, { once: true, passive: true });
+  }
+
   // Wire up all buttons to play click sound
   function wireButtonSounds() {
+    unlockAudio();
     document.addEventListener('click', e => {
       if (e.target.closest('button, .btn, .mine-tile, .tower-tile, .roul-cell')) {
         playClick();
