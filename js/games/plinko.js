@@ -59,32 +59,35 @@ const Plinko = (() => {
       this.trail.push({ x: this.x, y: this.y });
       if (this.trail.length > 8) this.trail.shift();
 
-      // Bounce off pegs — only one collision per frame to prevent trapping
+      // Plinko-style deflection: each peg sends ball left or right, never traps
       let hitPeg = false;
       for (const peg of pegs) {
         if (hitPeg) break;
         const dx = this.x - peg.x;
         const dy = this.y - peg.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
-        if (dist < this.radius + pegRadius) {
+        if (dist < this.radius + pegRadius + 1) {
           hitPeg = true;
-          const angle = Math.atan2(dy, dx);
-          const speed = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
 
-          // ADDICTION: Near-miss bias — nudge ball toward target bucket
-          let deflection = (Math.random() - 0.5) * 0.5;
+          // Decide direction — bias toward near-miss target if applicable
+          let goRight = Math.random() < 0.5;
           if (this.isNearMiss && this.targetBucket >= 0) {
             const centerX = pegSpacing * (0.5 + this.targetBucket);
-            deflection += (centerX - this.x) * 0.005;
+            if (Math.abs(centerX - this.x) > pegSpacing * 0.3)
+              goRight = centerX > this.x;
           }
 
-          this.vx = Math.cos(angle) * speed * 0.55 + deflection;
-          // Always ensure downward velocity after bounce so ball can't get trapped
-          this.vy = Math.abs(Math.sin(angle) * speed * 0.45) + 1.0;
+          const side = goRight ? 1 : -1;
+          const sep = this.radius + pegRadius + 2;
 
-          // Separate from peg
-          this.x = peg.x + Math.cos(angle) * (this.radius + pegRadius + 2);
-          this.y = peg.y + Math.sin(angle) * (this.radius + pegRadius + 2);
+          // Place ball beside and below the peg so it can't re-collide
+          this.x = peg.x + side * sep;
+          this.y = peg.y + sep * 0.5;
+
+          // Horizontal impulse in chosen direction, preserve downward momentum
+          this.vx = side * (Math.abs(this.vx) * 0.5 + pegSpacing * 0.12 + Math.random() * pegSpacing * 0.08);
+          this.vy = Math.abs(this.vy) * 0.6 + 1.5;
+
           this.bounces++;
           Audio.playPlinkoHit();
         }
