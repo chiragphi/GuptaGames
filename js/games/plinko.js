@@ -1,23 +1,21 @@
 // LuckyDev Casino — Plinko Game
-// Physics simulation with near-miss system and multi-ball
+// Path-precomputed animation (no physics engine)
 
 const Plinko = (() => {
   const ROWS = 16;
-  const BUCKETS = ROWS + 1; // 17 buckets
+  const BUCKETS = ROWS + 1;
   let canvas, ctx;
-  let balls = [];
+  let activeBalls = [];
   let pegs = [];
   let animFrame = null;
-  let risk = 'med'; // low / med / high
+  let risk = 'med';
   let betAmount = 10;
-  let ballTrails = []; // ghost trails for last 10 balls
   let lastBallLanding = [];
 
-  // Multiplier tables per risk
   const MULTIPLIERS = {
-    low:  [0.3, 0.4, 0.5, 0.7, 1.0, 1.0, 1.0, 1.5, 1.0, 1.0, 1.0, 0.7, 0.5, 0.4, 0.3, 1.5, 0.2],
-    med:  [0.2, 0.3, 0.4, 0.5, 0.8, 1.0, 1.5, 3.0, 1.5, 1.0, 0.8, 0.5, 0.4, 0.3, 0.2, 5.0, 1000],
-    high: [0.1, 0.2, 0.2, 0.3, 0.4, 0.5, 1.0, 5.0, 1.0, 0.5, 0.4, 0.3, 0.2, 0.2, 0.1, 10.0, 1000],
+    low:  [0.3,0.4,0.5,0.7,1.0,1.0,1.0,1.5,1.0,1.0,1.0,0.7,0.5,0.4,0.3,1.5,0.2],
+    med:  [0.2,0.3,0.4,0.5,0.8,1.0,1.5,3.0,1.5,1.0,0.8,0.5,0.4,0.3,0.2,5.0,1000],
+    high: [0.1,0.2,0.2,0.3,0.4,0.5,1.0,5.0,1.0,0.5,0.4,0.3,0.2,0.2,0.1,10.0,1000],
   };
 
   const BUCKET_COLORS = {
@@ -26,108 +24,130 @@ const Plinko = (() => {
     high: ['#8B0000','#CC1100','#FF3B30','#FF6B35','#FFA552','#FFD700','#30D158','#00FFFF','#30D158','#FFD700','#FFA552','#FF6B35','#FF3B30','#CC1100','#8B0000','#FF3B30','#BF5AF2'],
   };
 
-  const W_SCALE = 1;
-  let W, H;
-  let pegRadius = 5;
-  let ballRadius = 1;
-  let pegSpacing;
-  let topOffset;
+  let W, H, pegSpacing, topOffset;
+  const PEG_R = 5;
+  const BALL_R = 3;
 
-  class Ball {
-    constructor(startX, isNearMiss = false) {
-      this.x = startX;
-      this.y = topOffset - 30;
-      this.vx = (Math.random() - 0.5) * 1.2;
-      this.vy = 0;
-      this.radius = ballRadius;
-      this.trail = [];
-      this.landed = false;
-      this.bucket = -1;
-      this.bounces = 0;
-      this.color = '#FFD700';
-      this.isNearMiss = isNearMiss;
-      this.targetBucket = isNearMiss ? Addiction.getPlinkoNearMissBucket(BUCKETS) : -1;
+  // Build peg grid
+  function buildPegs() {
+    pegs = [];
+    for (let row = 0; row < ROWS; row++) {
+      const count = row + 2;
+      const rowW = (count - 1) * pegSpacing;
+      const startX = (W - rowW) / 2;
+      for (let col = 0; col < count; col++) {
+        pegs.push({ x: startX + col * pegSpacing, y: topOffset + row * pegSpacing * 0.85, row, col });
+      }
     }
+  }
+
+  // Pre-compute waypoints for a ball drop — purely positional, no physics
+  function computePath(nearMiss, targetBucket) {
+    const waypoints = [];
+    // Start above first peg row
+    waypoints.push({ x: W / 2, y: topOffset - pegSpacing * 0.8 });
+
+    let col = 0; // column offset within current row (0 = leftmost slot)
+
+    for (let row = 0; row < ROWS; row++) {
+      // Choose direction: 0 = left, 1 = right
+      let dir;
+      if (nearMiss && targetBucket >= 0 && row >= ROWS - 4) {
+        // Bias last 4 rows toward target
+        const curBucket = col; // col after row bounces = bucket index
+        dir = targetBucket > curBucket ? 1 : 0;
+      } else {
+        dir = Math.random() < 0.5 ? 0 : 1;
+      }
+
+      // Peg hit in this row: there are (row+2) pegs, ball is between col and col+1
+      const count = row + 2;
+      const rowW = (count - 1) * pegSpacing;
+      const startX = (W - rowW) / 2;
+      const pegX = startX + (col + dir) * pegSpacing; // peg it deflects off
+      const pegY = topOffset + row * pegSpacing * 0.85;
+
+      waypoints.push({ x: pegX, y: pegY });
+
+      // After deflection, col advances by dir (ball moves right if dir=1)
+      col += dir;
+    }
+
+    // Final bucket
+    const bucket = Math.max(0, Math.min(BUCKETS - 1, col));
+    const bucketW = W / BUCKETS;
+    const bucketX = bucket * bucketW + bucketW / 2;
+    waypoints.push({ x: bucketX, y: H - 14 });
+
+    return { waypoints, bucket };
+  }
+
+  class AnimBall {
+    constructor(betAmt) {
+      this.betAmt = betAmt;
+      const nearMiss = Addiction.shouldNearMiss();
+      const target = nearMiss ? Addiction.getPlinkoNearMissBucket(BUCKETS) : -1;
+      const { waypoints, bucket } = computePath(nearMiss, target);
+      this.waypoints = waypoints;
+      this.bucket = bucket;
+      this.wpIdx = 0;        // current waypoint index
+      this.t = 0;            // interpolation 0→1 between waypoints
+      this.done = false;
+      this.trail = [];
+      // Speed: frames between waypoints (lower = faster)
+      this.framesPerStep = 10;
+    }
+
+    get x() { return this._x || this.waypoints[0].x; }
+    get y() { return this._y || this.waypoints[0].y; }
 
     update() {
-      if (this.landed) return;
+      if (this.done) return;
+      const from = this.waypoints[this.wpIdx];
+      const to   = this.waypoints[this.wpIdx + 1];
+      if (!to) { this.done = true; onBallLand(this); return; }
 
-      this.vy += 0.35; // gravity
-      this.x += this.vx;
-      this.y += this.vy;
-
-      this.trail.push({ x: this.x, y: this.y });
-      if (this.trail.length > 8) this.trail.shift();
-
-      // Plinko-style deflection: each peg sends ball left or right, never traps
-      let hitPeg = false;
-      for (const peg of pegs) {
-        if (hitPeg) break;
-        const dx = this.x - peg.x;
-        const dy = this.y - peg.y;
-        const dist = Math.sqrt(dx * dx + dy * dy);
-        if (dist < this.radius + pegRadius + 1) {
-          hitPeg = true;
-
-          // Decide direction — bias toward near-miss target if applicable
-          let goRight = Math.random() < 0.5;
-          if (this.isNearMiss && this.targetBucket >= 0) {
-            const centerX = pegSpacing * (0.5 + this.targetBucket);
-            if (Math.abs(centerX - this.x) > pegSpacing * 0.3)
-              goRight = centerX > this.x;
-          }
-
-          const side = goRight ? 1 : -1;
-          const sep = this.radius + pegRadius + 2;
-
-          // Place ball beside and below the peg so it can't re-collide
-          this.x = peg.x + side * sep;
-          this.y = peg.y + sep * 0.5;
-
-          // Horizontal impulse in chosen direction, preserve downward momentum
-          this.vx = side * (Math.abs(this.vx) * 0.5 + pegSpacing * 0.12 + Math.random() * pegSpacing * 0.08);
-          this.vy = Math.abs(this.vy) * 0.6 + 1.5;
-
-          this.bounces++;
-          Audio.playPlinkoHit();
+      this.t += 1 / this.framesPerStep;
+      if (this.t >= 1) {
+        this.t = 0;
+        this.wpIdx++;
+        if (this.wpIdx >= this.waypoints.length - 1) {
+          this._x = to.x; this._y = to.y;
+          this.done = true;
+          onBallLand(this);
+          return;
         }
+        Audio.playPlinkoHit();
       }
 
-      // Boundaries
-      if (this.x < this.radius) { this.x = this.radius; this.vx = Math.abs(this.vx); }
-      if (this.x > W - this.radius) { this.x = W - this.radius; this.vx = -Math.abs(this.vx); }
+      // Ease-in-out for natural feel
+      const ease = this.t < 0.5 ? 2 * this.t * this.t : -1 + (4 - 2 * this.t) * this.t;
+      this._x = from.x + (to.x - from.x) * ease;
+      this._y = from.y + (to.y - from.y) * ease;
 
-      // Landed in bucket
-      if (this.y > H - 20) {
-        this.landed = true;
-        this.y = H - 20;
-        this.bucket = Math.floor(this.x / pegSpacing);
-        this.bucket = Math.max(0, Math.min(BUCKETS - 1, this.bucket));
-        onBallLand(this);
-      }
+      this.trail.push({ x: this._x, y: this._y });
+      if (this.trail.length > 6) this.trail.shift();
     }
 
-    draw(ctx) {
+    draw() {
       // Trail
       this.trail.forEach((pt, i) => {
-        const alpha = (i / this.trail.length) * 0.4;
+        const a = (i / this.trail.length) * 0.35;
         ctx.beginPath();
-        ctx.arc(pt.x, pt.y, this.radius * (i / this.trail.length), 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(255,215,0,${alpha})`;
+        ctx.arc(pt.x, pt.y, BALL_R * (i / this.trail.length), 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(255,215,0,${a})`;
         ctx.fill();
       });
-
       // Ball
       ctx.beginPath();
-      ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-      const grad = ctx.createRadialGradient(this.x - 2, this.y - 2, 1, this.x, this.y, this.radius);
-      grad.addColorStop(0, '#FFFFFF');
-      grad.addColorStop(0.4, '#FFD700');
-      grad.addColorStop(1, '#FF8C00');
-      ctx.fillStyle = grad;
-      ctx.fill();
+      ctx.arc(this._x, this._y, BALL_R, 0, Math.PI * 2);
+      const g = ctx.createRadialGradient(this._x - 1, this._y - 1, 0.5, this._x, this._y, BALL_R);
+      g.addColorStop(0, '#fff');
+      g.addColorStop(0.4, '#FFD700');
+      g.addColorStop(1, '#FF8C00');
+      ctx.fillStyle = g;
       ctx.shadowColor = '#FFD700';
-      ctx.shadowBlur = 6;
+      ctx.shadowBlur = 8;
       ctx.fill();
       ctx.shadowBlur = 0;
     }
@@ -135,10 +155,10 @@ const Plinko = (() => {
 
   function onBallLand(ball) {
     const mults = MULTIPLIERS[risk];
-    const mult = mults[ball.bucket] || 0.2;
-    const win = Math.floor(betAmount * mult);
+    const mult  = mults[ball.bucket] || 0.2;
+    const win   = Math.floor(ball.betAmt * mult);
 
-    Core.resolveWin(win, betAmount);
+    Core.resolveWin(win, ball.betAmt);
     Core.trackPlinko();
     Core.trackFirstWin();
 
@@ -148,22 +168,19 @@ const Plinko = (() => {
       Particles.jackpotRain();
     } else if (mult >= 5) {
       goldFlash();
-      Particles.winShower(ball.x, ball.y, 20);
+      Particles.winShower(ball._x, ball._y, 20);
       Audio.playWin(win);
-    } else if (win > betAmount) {
+    } else if (win > ball.betAmt) {
       Audio.playCoin();
-      Particles.burstAt(canvas, 8);
-    } else if (win < betAmount) {
-      Addiction.handleLossDisguised(win, betAmount);
     } else {
+      Addiction.handleLossDisguised(win, ball.betAmt);
       Audio.playLoss();
       Core.resolveLoss();
     }
 
-    Addiction.onWin();
-    showToast(win > betAmount ? 'win' : 'info',
+    showToast(win > ball.betAmt ? 'win' : 'info',
       `Bucket ${ball.bucket + 1} — ${mult}x`,
-      win > betAmount ? `+${(win - betAmount).toLocaleString()} chips profit!` : `Got ${win.toLocaleString()} chips`,
+      win > ball.betAmt ? `+${(win - ball.betAmt).toLocaleString()} chips profit!` : `Got ${win.toLocaleString()} chips`,
       'gem');
 
     lastBallLanding.unshift({ bucket: ball.bucket, mult, win });
@@ -172,53 +189,35 @@ const Plinko = (() => {
     FirebaseDB.submitScore(Core.getState().username, Core.getBalance(), win, 'Plinko');
   }
 
-  function buildPegs() {
-    pegs = [];
-    for (let row = 0; row < ROWS; row++) {
-      const count = row + 2;
-      const rowWidth = (count - 1) * pegSpacing;
-      const startX = (W - rowWidth) / 2;
-      for (let col = 0; col < count; col++) {
-        pegs.push({
-          x: startX + col * pegSpacing,
-          y: topOffset + row * pegSpacing * 0.85,
-        });
-      }
-    }
-  }
-
   function drawPegs() {
     pegs.forEach(peg => {
       ctx.beginPath();
-      ctx.arc(peg.x, peg.y, pegRadius, 0, Math.PI * 2);
+      ctx.arc(peg.x, peg.y, PEG_R, 0, Math.PI * 2);
       ctx.fillStyle = '#334466';
       ctx.fill();
       ctx.beginPath();
-      ctx.arc(peg.x - 1.5, peg.y - 1.5, pegRadius * 0.4, 0, Math.PI * 2);
+      ctx.arc(peg.x - 1.5, peg.y - 1.5, PEG_R * 0.4, 0, Math.PI * 2);
       ctx.fillStyle = 'rgba(255,255,255,0.4)';
       ctx.fill();
     });
   }
 
   function drawBuckets() {
-    const mults = MULTIPLIERS[risk];
+    const mults  = MULTIPLIERS[risk];
     const colors = BUCKET_COLORS[risk];
     const bucketW = W / BUCKETS;
     const bucketH = 26;
     const y = H - bucketH;
-
     mults.forEach((m, i) => {
       const x = i * bucketW;
       ctx.fillStyle = colors[i] || '#333';
       ctx.fillRect(x + 1, y, bucketW - 2, bucketH);
-
       ctx.fillStyle = 'rgba(255,255,255,0.15)';
       ctx.fillRect(x + 1, y, bucketW - 2, 4);
-
       ctx.fillStyle = '#000';
-      ctx.font = `bold ${Math.max(8, 10 - BUCKETS * 0.3)}px monospace`;
+      ctx.font = `bold ${Math.max(7, 10 - BUCKETS * 0.3)}px monospace`;
       ctx.textAlign = 'center';
-      ctx.fillText(m >= 100 ? m + 'x' : m + 'x', x + bucketW / 2, y + bucketH - 6);
+      ctx.fillText(m + 'x', x + bucketW / 2, y + bucketH - 6);
     });
   }
 
@@ -226,11 +225,8 @@ const Plinko = (() => {
     ctx.clearRect(0, 0, W, H);
     drawPegs();
     drawBuckets();
-
-    balls.forEach(b => { b.update(); b.draw(ctx); });
-    balls = balls.filter(b => !b.landed || (Date.now() - (b.landedAt || Date.now())) < 1000);
-    balls.forEach(b => { if (b.landed && !b.landedAt) b.landedAt = Date.now(); });
-
+    activeBalls.forEach(b => { b.update(); if (!b.done) b.draw(); });
+    activeBalls = activeBalls.filter(b => !b.done);
     animFrame = requestAnimationFrame(loop);
   }
 
@@ -240,39 +236,33 @@ const Plinko = (() => {
         showToast('info', 'Insufficient chips', 'Not enough chips.', 'warning');
         break;
       }
-      const cx = W / 2 + (Math.random() - 0.5) * 20;
-      const nearMiss = Addiction.shouldNearMiss() && i === 0;
-      setTimeout(() => balls.push(new Ball(cx, nearMiss)), i * 200);
+      setTimeout(() => activeBalls.push(new AnimBall(betAmount)), i * 300);
     }
+  }
+
+  function resize() {
+    W = Math.min(window.innerWidth - 40, 560);
+    H = Math.min(window.innerHeight * 0.65, 540);
+    canvas.width  = W;
+    canvas.height = H;
+    pegSpacing = W / (ROWS + 2);
+    topOffset  = pegSpacing * 0.6;
+    buildPegs();
   }
 
   function init() {
     canvas = document.getElementById('plinko-canvas');
     if (!canvas) return;
     ctx = canvas.getContext('2d');
-
-    function resize() {
-      W = Math.min(window.innerWidth - 40, 560);
-      H = Math.min(window.innerHeight * 0.65, 540);
-      canvas.width = W;
-      canvas.height = H;
-      pegSpacing = W / (ROWS + 2);
-      topOffset = pegSpacing * 0.6;
-      ballRadius = 3;
-      buildPegs();
-    }
     resize();
-    window.addEventListener('resize', () => { resize(); });
-
+    window.addEventListener('resize', resize);
     loop();
 
-    // Controls
     document.getElementById('plinko-drop')?.addEventListener('click', () => {
       const count = parseInt(document.getElementById('ball-count')?.value) || 1;
       dropBall(count);
     });
 
-    // Risk buttons
     document.querySelectorAll('.risk-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         risk = btn.dataset.risk;
@@ -280,8 +270,7 @@ const Plinko = (() => {
         btn.classList.add('active', risk);
       });
     });
-
-    document.querySelector('.risk-btn[data-risk="med"]')?.classList.add('active', 'med');
+    document.querySelector('.risk-btn[data-risk="med"]')?.classList.add('active','med');
 
     const betInp = document.getElementById('plinko-bet');
     if (betInp) {
