@@ -24,6 +24,7 @@ async function initFirebase() {
     if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
     db = firebase.database();
     firebaseReady = true;
+    if (window.Auth) Auth.init();
     return true;
   } catch(e) {
     console.warn('Firebase init failed:', e);

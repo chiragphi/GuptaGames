@@ -9,6 +9,7 @@
 <link rel="stylesheet" href="../css/animations.css"/>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
 </head>
 <body>
 <div style="display:none" id="svg-sprite-container"></div>
@@ -35,11 +36,11 @@
 </div>
 
 <header class="site-header">
-  <a href="../index.html" class="header-logo">
+  <a href="../lobby.html" class="header-logo">
     <svg class="icon" aria-hidden="true"><use href="#icon-crown"/></svg>LuckyDev Casino
   </a>
   <nav class="header-nav">
-    <a href="../index.html"><svg class="icon" aria-hidden="true"><use href="#icon-home"/></svg>Lobby</a>
+    <a href="../lobby.html"><svg class="icon" aria-hidden="true"><use href="#icon-home"/></svg>Lobby</a>
   </nav>
   <div class="header-right">
     <div class="xp-bar-mini">
@@ -161,6 +162,7 @@
 <script src="../js/audio.js"></script>
 <script src="../js/particles.js"></script>
 <script src="../js/firebase.js"></script>
+<script src="../js/auth.js"></script>
 <script src="../js/games/slots.js"></script>
 <script>
 (async () => {

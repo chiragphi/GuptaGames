@@ -81,13 +81,22 @@ const Core = (() => {
   let onBalanceChange = null;
 
   // ===== PERSISTENCE =====
+  let storageKey = 'luckydev_state';
+
+  function setUID(uid) {
+    const k = 'luckydev_state_' + uid;
+    if (storageKey === k) return;
+    storageKey = k;
+    load();
+  }
+
   function save() {
-    try { localStorage.setItem('luckydev_state', JSON.stringify(state)); } catch(e) {}
+    try { localStorage.setItem(storageKey, JSON.stringify(state)); } catch(e) {}
   }
 
   function load() {
     try {
-      const raw = localStorage.getItem('luckydev_state');
+      const raw = localStorage.getItem(storageKey);
       if (raw) {
         const saved = JSON.parse(raw);
         state = { ...state, ...saved };
@@ -431,7 +440,7 @@ const Core = (() => {
   }
 
   return {
-    init, save, load, getState, getBalance, addBalance, canBet, placeBet,
+    init, save, load, setUID, getState, getBalance, addBalance, canBet, placeBet,
     resolveWin, resolveLoss, addXP, checkAchievement, hasAchievement,
     canRebuy, rebuy, rebuyTimeLeft, getSessionSummary,
     setBalanceEl, setXPEls, setOnBalanceChange, updateBalanceUI, updateXPBar,
