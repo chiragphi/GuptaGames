@@ -255,7 +255,7 @@ const Plinko = (() => {
       canvas.height = H;
       pegSpacing = W / (ROWS + 2);
       topOffset = pegSpacing * 0.6;
-      ballRadius = Math.max(2, pegSpacing * 0.07);
+      ballRadius = Math.max(2, pegSpacing * 0.04);
       buildPegs();
     }
     resize();
