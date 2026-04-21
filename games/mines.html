@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Mines — LuckyDev Casino</title>
+<link rel="stylesheet" href="../css/main.css"/>
+<link rel="stylesheet" href="../css/games.css"/>
+<link rel="stylesheet" href="../css/animations.css"/>
+</head>
+<body>
+<div style="display:none" id="svg-sprite-container"></div>
+<script>fetch('../assets/icons/sprite.svg').then(r=>r.text()).then(t=>{document.getElementById('svg-sprite-container').innerHTML=t;});</script>
+<div id="modal-overlay" class="modal-overlay" onclick="if(event.target===this)closeModal()"><div class="modal" id="modal-content"></div></div>
+<div id="toast-container"></div>
+<div id="bonus-popup"><div class="bonus-popup-title">Free Bonus!</div><div class="bonus-popup-amount">+100 CHIPS</div><div style="display:flex;gap:10px;justify-content:center;margin-top:16px"><button class="btn btn-gold" onclick="claimBonusPopup()">Claim!</button><button class="btn btn-ghost btn-sm" onclick="dismissBonusPopup()">Dismiss</button></div></div>
+<div id="jackpot-overlay"><div style="display:flex;flex-direction:column;align-items:center;gap:20px"><div class="jackpot-title">JACKPOT!!!</div><div class="jackpot-amount">+0 CHIPS</div><button class="btn btn-gold btn-lg" onclick="document.getElementById('jackpot-overlay').classList.remove('active')">Collect!</button></div></div>
+
+<header class="site-header">
+  <a href="../index.html" class="header-logo"><svg class="icon" aria-hidden="true"><use href="#icon-crown"/></svg>LuckyDev Casino</a>
+  <nav class="header-nav"><a href="../index.html"><svg class="icon" aria-hidden="true"><use href="#icon-home"/></svg>Lobby</a></nav>
+  <div class="header-right">
+    <div class="xp-bar-mini"><div class="level-label" id="xp-level-label">Lv.1</div><div class="xp-track"><div class="xp-fill" id="xp-fill" style="width:0%"></div></div></div>
+    <div class="balance-display" id="balance-display"><svg class="icon" aria-hidden="true"><use href="#icon-coin"/></svg><span class="balance-amount" id="balance-amount">0</span></div>
+    <button class="btn-icon" id="mute-btn"><svg class="icon" aria-hidden="true"><use href="#icon-volume"/></svg></button>
+  </div>
+</header>
+
+<div class="game-page">
+<div class="game-area">
+  <div class="game-title">Mines</div>
+  <div class="game-subtitle">Reveal safe tiles — cash out anytime — one mine ends it all!</div>
+
+  <div class="mines-layout">
+    <div class="mines-grid" id="mines-grid"></div>
+    <div class="mines-sidebar">
+      <div class="mines-stat">
+        <div class="mines-stat-label">Multiplier</div>
+        <div class="mines-stat-val mines-multiplier" id="mines-multiplier">1.00x</div>
+      </div>
+      <div class="mines-stat">
+        <div class="mines-stat-label">Potential Win</div>
+        <div class="mines-stat-val" id="mines-potential">10</div>
+      </div>
+      <div class="mines-stat">
+        <div class="mines-stat-label">Safe Tiles</div>
+        <div class="mines-stat-val" id="mines-safe">0</div>
+      </div>
+
+      <div class="card" style="padding:12px">
+        <div class="bet-label" style="margin-bottom:6px">Bet</div>
+        <input type="number" id="mines-bet" class="bet-input" value="10" min="1" style="width:100%;margin-bottom:8px"/>
+        <div class="bet-label" style="margin-bottom:6px">Mines (1-24)</div>
+        <select id="mines-count" class="bet-input" style="width:100%;margin-bottom:12px">
+          <option value="1">1 mine</option>
+          <option value="3">3 mines</option>
+          <option value="5" selected>5 mines</option>
+          <option value="10">10 mines</option>
+          <option value="20">20 mines</option>
+        </select>
+        <button class="btn btn-gold" id="mines-start" style="width:100%;margin-bottom:8px">Start</button>
+        <button class="btn btn-green" id="mines-cashout" style="width:100%" disabled>Cash Out</button>
+      </div>
+
+      <div class="game-result" id="mines-result"></div>
+    </div>
+  </div>
+</div>
+</div>
+
+<footer class="site-footer">
+  <div class="footer-disclaimer">For entertainment only — no real money involved.</div>
+</footer>
+
+<script src="../js/core.js"></script>
+<script src="../js/addiction.js"></script>
+<script src="../js/audio.js"></script>
+<script src="../js/particles.js"></script>
+<script src="../js/firebase.js"></script>
+<script src="../js/games/mines.js"></script>
+<script>
+(async () => {
+  Core.init(); Particles.init();
+  Core.setBalanceEl(document.getElementById('balance-display'));
+  Core.setXPEls(document.getElementById('xp-fill'), document.getElementById('xp-level-label'));
+  Core.updateBalanceUI(0, Core.getBalance()); Core.updateXPBar();
+  Audio.wireButtonSounds(); Addiction.init();
+  await FirebaseDB.init();
+  Mines.init();
+  document.getElementById('mute-btn')?.addEventListener('click', () => {
+    const icon = document.querySelector('#mute-btn use');
+    const m = icon.getAttribute('href')==='#icon-mute';
+    Audio.setMuted(!m); icon.setAttribute('href', m?'#icon-volume':'#icon-mute');
+  });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Coin Flip — LuckyDev Casino</title>
+<link rel="stylesheet" href="../css/main.css"/>
+<link rel="stylesheet" href="../css/games.css"/>
+<link rel="stylesheet" href="../css/animations.css"/>
+<style>
+#coin-flip-coin { width:160px;height:160px;perspective:600px;cursor:pointer; }
+.coin-inner { width:100%;height:100%;position:relative;transform-style:preserve-3d;transition:transform 0.1s; }
+.coin-face,.coin-back { position:absolute;inset:0;backface-visibility:hidden;display:flex;align-items:center;justify-content:center;border-radius:50%; }
+.coin-back { transform:rotateY(180deg); }
+.coin-face .icon { width:100%;height:100%;color:#FFD700; }
+.coin-back .icon { width:100%;height:100%;color:var(--cyan); }
+</style>
+</head>
+<body>
+<div style="display:none" id="svg-sprite-container"></div>
+<script>fetch('../assets/icons/sprite.svg').then(r=>r.text()).then(t=>{document.getElementById('svg-sprite-container').innerHTML=t;});</script>
+<div id="modal-overlay" class="modal-overlay" onclick="if(event.target===this)closeModal()"><div class="modal" id="modal-content"></div></div>
+<div id="toast-container"></div>
+<div id="bonus-popup"><div class="bonus-popup-title">Free Bonus!</div><div class="bonus-popup-amount">+100 CHIPS</div><div style="display:flex;gap:10px;justify-content:center;margin-top:16px"><button class="btn btn-gold" onclick="claimBonusPopup()">Claim!</button><button class="btn btn-ghost btn-sm" onclick="dismissBonusPopup()">Dismiss</button></div></div>
+<div id="jackpot-overlay"><div style="display:flex;flex-direction:column;align-items:center;gap:20px"><div class="jackpot-title">JACKPOT!!!</div><div class="jackpot-amount">+0 CHIPS</div><button class="btn btn-gold btn-lg" onclick="document.getElementById('jackpot-overlay').classList.remove('active')">Collect!</button></div></div>
+
+<header class="site-header">
+  <a href="../index.html" class="header-logo"><svg class="icon" aria-hidden="true"><use href="#icon-crown"/></svg>LuckyDev Casino</a>
+  <nav class="header-nav"><a href="../index.html"><svg class="icon" aria-hidden="true"><use href="#icon-home"/></svg>Lobby</a></nav>
+  <div class="header-right">
+    <div class="xp-bar-mini"><div class="level-label" id="xp-level-label">Lv.1</div><div class="xp-track"><div class="xp-fill" id="xp-fill" style="width:0%"></div></div></div>
+    <div class="balance-display" id="balance-display"><svg class="icon" aria-hidden="true"><use href="#icon-coin"/></svg><span class="balance-amount" id="balance-amount">0</span></div>
+    <button class="btn-icon" id="mute-btn"><svg class="icon" aria-hidden="true"><use href="#icon-volume"/></svg></button>
+  </div>
+</header>
+
+<div class="game-page">
+<div class="game-area">
+  <div class="game-title">Coin Flip</div>
+  <div class="game-subtitle">50/50 odds — call it right — build a streak!</div>
+
+  <div class="coin-flip-container">
+
+    <!-- Coin -->
+    <div id="coin-flip-coin">
+      <div class="coin-inner" id="coin-inner">
+        <div class="coin-face">
+          <svg class="icon" aria-hidden="true"><use href="#icon-coin"/></svg>
+        </div>
+        <div class="coin-back">
+          <svg class="icon" aria-hidden="true"><use href="#icon-coin"/></svg>
+        </div>
+      </div>
+    </div>
+
+    <!-- Result -->
+    <div class="game-result" id="cf-result" style="min-height:40px"></div>
+
+    <!-- Win streak -->
+    <div style="display:flex;gap:24px;text-align:center">
+      <div>
+        <div style="font-size:0.7rem;color:var(--text-sec)">WIN STREAK</div>
+        <div style="font-size:2rem;font-weight:900;color:var(--gold)" id="cf-streak">0</div>
+      </div>
+      <div>
+        <div style="font-size:0.7rem;color:var(--text-sec)">WON</div>
+        <div style="font-size:2rem;font-weight:900;color:var(--green)" id="cf-won">0</div>
+      </div>
+      <div>
+        <div style="font-size:0.7rem;color:var(--text-sec)">LOST</div>
+        <div style="font-size:2rem;font-weight:900;color:var(--red)" id="cf-lost">0</div>
+      </div>
+    </div>
+
+    <!-- Choice -->
+    <div class="coin-choice">
+      <button class="coin-choice-btn" data-choice="heads">Heads</button>
+      <button class="coin-choice-btn" data-choice="tails">Tails</button>
+    </div>
+
+    <!-- Bet -->
+    <div class="bet-controls" style="width:100%">
+      <div class="bet-row">
+        <span class="bet-label">Bet</span>
+        <input type="number" id="cf-bet" class="bet-input" value="10" min="1"/>
+        <div class="bet-quick">
+          <button class="btn-bet cf-quick" data-val="10">10</button>
+          <button class="btn-bet cf-quick" data-val="50">50</button>
+          <button class="btn-bet cf-quick" data-val="100">100</button>
+        </div>
+      </div>
+    </div>
+
+    <button class="btn btn-gold btn-lg" id="cf-flip-btn" style="width:100%;max-width:300px">
+      <svg class="icon" aria-hidden="true"><use href="#icon-coin"/></svg>
+      Flip! (Space)
+    </button>
+
+  </div>
+</div>
+</div>
+
+<footer class="site-footer">
+  <div class="footer-disclaimer">For entertainment only — no real money involved.</div>
+</footer>
+
+<script src="../js/core.js"></script>
+<script src="../js/addiction.js"></script>
+<script src="../js/audio.js"></script>
+<script src="../js/particles.js"></script>
+<script src="../js/firebase.js"></script>
+<script src="../js/games/coinflip.js"></script>
+<script>
+(async () => {
+  Core.init(); Particles.init();
+  Core.setBalanceEl(document.getElementById('balance-display'));
+  Core.setXPEls(document.getElementById('xp-fill'), document.getElementById('xp-level-label'));
+  Core.updateBalanceUI(0, Core.getBalance()); Core.updateXPBar();
+  Audio.wireButtonSounds(); Addiction.init();
+  await FirebaseDB.init();
+  CoinFlip.init();
+  document.getElementById('mute-btn')?.addEventListener('click', () => {
+    const icon = document.querySelector('#mute-btn use');
+    const m = icon.getAttribute('href')==='#icon-mute';
+    Audio.setMuted(!m); icon.setAttribute('href', m?'#icon-volume':'#icon-mute');
+  });
+})();
+</script>
+</body>
+</html>

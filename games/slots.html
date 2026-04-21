@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Slots — LuckyDev Casino</title>
+<link rel="stylesheet" href="../css/main.css"/>
+<link rel="stylesheet" href="../css/games.css"/>
+<link rel="stylesheet" href="../css/animations.css"/>
+</head>
+<body>
+<div style="display:none" id="svg-sprite-container"></div>
+<script>fetch('../assets/icons/sprite.svg').then(r=>r.text()).then(t=>{document.getElementById('svg-sprite-container').innerHTML=t;});</script>
+
+<div id="jackpot-overlay">
+  <div style="display:flex;flex-direction:column;align-items:center;gap:20px">
+    <svg class="icon" style="width:100px;height:100px;color:#FFD700" aria-hidden="true"><use href="#icon-crown"/></svg>
+    <div class="jackpot-title">JACKPOT!!!</div>
+    <div class="jackpot-amount">+0 CHIPS</div>
+    <button class="btn btn-gold btn-lg" onclick="document.getElementById('jackpot-overlay').classList.remove('active')">Collect!</button>
+  </div>
+</div>
+<div id="modal-overlay" class="modal-overlay" onclick="if(event.target===this)closeModal()"><div class="modal" id="modal-content"></div></div>
+<div id="toast-container"></div>
+<div id="bonus-popup">
+  <div style="font-size:0.8rem;color:var(--cyan);font-weight:700;margin-bottom:4px">LUCKY SPIN!</div>
+  <div class="bonus-popup-title">Free Bonus!</div>
+  <div class="bonus-popup-amount">+100 CHIPS</div>
+  <div style="display:flex;gap:10px;justify-content:center;margin-top:16px">
+    <button class="btn btn-gold" onclick="claimBonusPopup()">Claim!</button>
+    <button class="btn btn-ghost btn-sm" onclick="dismissBonusPopup()">Dismiss</button>
+  </div>
+</div>
+
+<header class="site-header">
+  <a href="../index.html" class="header-logo">
+    <svg class="icon" aria-hidden="true"><use href="#icon-crown"/></svg>LuckyDev Casino
+  </a>
+  <nav class="header-nav">
+    <a href="../index.html"><svg class="icon" aria-hidden="true"><use href="#icon-home"/></svg>Lobby</a>
+  </nav>
+  <div class="header-right">
+    <div class="xp-bar-mini">
+      <div class="level-label" id="xp-level-label">Lv.1</div>
+      <div class="xp-track"><div class="xp-fill" id="xp-fill" style="width:0%"></div></div>
+    </div>
+    <div class="balance-display" id="balance-display">
+      <svg class="icon" aria-hidden="true"><use href="#icon-coin"/></svg>
+      <span class="balance-amount" id="balance-amount">0</span>
+    </div>
+    <button class="btn-icon" id="mute-btn" title="Toggle sound">
+      <svg class="icon" aria-hidden="true"><use href="#icon-volume"/></svg>
+    </button>
+  </div>
+</header>
+
+<div class="game-page">
+<div class="game-area">
+  <div class="game-title">Lucky Slots</div>
+  <div class="game-subtitle">5 Reels · 10 Paylines · Cascading Wins · Progressive Jackpot</div>
+
+  <!-- HOT STREAK INDICATOR -->
+  <div class="hot-streak-badge" id="hot-streak-badge">
+    <svg class="icon animate-fire" aria-hidden="true"><use href="#icon-fire"/></svg>
+    HOT STREAK ACTIVE
+  </div>
+
+  <!-- JACKPOT DISPLAY -->
+  <div class="jackpot-counter" style="margin-bottom:12px">
+    <div class="jackpot-label">Progressive Jackpot</div>
+    <div class="jackpot-amount" id="jackpot-display-slots">50,000</div>
+  </div>
+
+  <!-- SLOTS MACHINE -->
+  <div class="slots-machine">
+    <div class="slots-reels-container">
+      <div class="slots-reels">
+        <div class="reel" id="reel-0"><div class="reel-inner" id="reel-inner-0"></div></div>
+        <div class="reel" id="reel-1"><div class="reel-inner" id="reel-inner-1"></div></div>
+        <div class="reel" id="reel-2"><div class="reel-inner" id="reel-inner-2"></div></div>
+        <div class="reel" id="reel-3"><div class="reel-inner" id="reel-inner-3"></div></div>
+        <div class="reel" id="reel-4"><div class="reel-inner" id="reel-inner-4"></div></div>
+      </div>
+    </div>
+
+    <div class="win-display" id="win-display"></div>
+
+    <!-- BET CONTROLS -->
+    <div class="bet-controls">
+      <div class="bet-row">
+        <span class="bet-label">Bet</span>
+        <input type="number" id="bet-input" class="bet-input" value="10" min="1" max="500"/>
+        <div class="bet-quick">
+          <button class="btn-bet" data-action="min">Min</button>
+          <button class="btn-bet" data-action="10">10</button>
+          <button class="btn-bet" data-action="50">50</button>
+          <button class="btn-bet" data-action="100">100</button>
+          <button class="btn-bet" data-action="half">1/2</button>
+          <button class="btn-bet" data-action="double">2x</button>
+          <button class="btn-bet" data-action="max">Max</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- SLOTS CONTROLS -->
+    <div class="slots-controls">
+      <div class="slots-options">
+        <label>
+          <input type="checkbox" id="turbo-toggle"/>
+          Turbo
+        </label>
+        <label>
+          <input type="checkbox" id="stop-win-toggle"/>
+          Stop on Win
+        </label>
+        <button class="btn btn-ghost btn-sm" id="auto-spin-btn">AUTO</button>
+        <span class="auto-spin-count" id="auto-spin-count"></span>
+      </div>
+      <button class="btn btn-spin" id="spin-btn">SPIN</button>
+      <div></div>
+    </div>
+  </div>
+
+  <!-- PAYTABLE -->
+  <div class="card" style="width:100%;max-width:680px;margin-top:20px">
+    <div class="widget-title">
+      <svg class="icon" aria-hidden="true"><use href="#icon-star"/></svg>
+      Pay Table (per bet unit)
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px">
+      <div style="display:flex;align-items:center;gap:8px;font-size:0.8rem">
+        <svg class="icon" style="width:24px;height:24px;color:#FF3B30" aria-hidden="true"><use href="#icon-seven"/></svg>
+        7 — 5000x (JACKPOT)
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;font-size:0.8rem">
+        <svg class="icon" style="width:24px;height:24px;color:#00FFFF" aria-hidden="true"><use href="#icon-diamond"/></svg>
+        Diamond — 1000x
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;font-size:0.8rem">
+        <svg class="icon" style="width:24px;height:24px;color:#FFD700" aria-hidden="true"><use href="#icon-crown"/></svg>
+        Crown — 400x
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;font-size:0.8rem">
+        <svg class="icon" style="width:24px;height:24px;color:#FFD700" aria-hidden="true"><use href="#icon-lightning"/></svg>
+        Lightning — 200x
+      </div>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<footer class="site-footer">
+  <div class="footer-disclaimer">For entertainment only — no real money involved.</div>
+</footer>
+
+<script src="../js/core.js"></script>
+<script src="../js/addiction.js"></script>
+<script src="../js/audio.js"></script>
+<script src="../js/particles.js"></script>
+<script src="../js/firebase.js"></script>
+<script src="../js/games/slots.js"></script>
+<script>
+(async () => {
+  Core.init();
+  Particles.init();
+  Core.setBalanceEl(document.getElementById('balance-display'));
+  Core.setXPEls(document.getElementById('xp-fill'), document.getElementById('xp-level-label'));
+  Core.updateBalanceUI(0, Core.getBalance());
+  Core.updateXPBar();
+  Audio.wireButtonSounds();
+  Addiction.init();
+  await FirebaseDB.init();
+  Slots.init();
+
+  const muteBtn = document.getElementById('mute-btn');
+  muteBtn?.addEventListener('click', () => {
+    const icon = muteBtn.querySelector('use');
+    const isMuted = icon.getAttribute('href') === '#icon-mute';
+    Audio.setMuted(!isMuted);
+    icon.setAttribute('href', isMuted ? '#icon-volume' : '#icon-mute');
+  });
+
+  // Hot streak badge
+  setInterval(() => {
+    const badge = document.getElementById('hot-streak-badge');
+    if (badge) badge.classList.toggle('active', Addiction.isHotStreak());
+  }, 2000);
+})();
+</script>
+</body>
+</html>

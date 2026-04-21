@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Profile — LuckyDev Casino</title>
+<link rel="stylesheet" href="css/main.css"/>
+<link rel="stylesheet" href="css/animations.css"/>
+</head>
+<body>
+<div style="display:none" id="svg-sprite-container"></div>
+<script>fetch('assets/icons/sprite.svg').then(r=>r.text()).then(t=>{document.getElementById('svg-sprite-container').innerHTML=t;});</script>
+<div id="modal-overlay" class="modal-overlay" onclick="if(event.target===this)closeModal()"><div class="modal" id="modal-content"></div></div>
+<div id="toast-container"></div>
+<div id="bonus-popup"><div class="bonus-popup-title">Free Bonus!</div><div class="bonus-popup-amount">+100 CHIPS</div><div style="display:flex;gap:10px;justify-content:center;margin-top:16px"><button class="btn btn-gold" onclick="claimBonusPopup()">Claim!</button><button class="btn btn-ghost btn-sm" onclick="dismissBonusPopup()">Dismiss</button></div></div>
+<div id="jackpot-overlay"><div style="display:flex;flex-direction:column;align-items:center;gap:20px"><div class="jackpot-title">JACKPOT!!!</div><div class="jackpot-amount">+0 CHIPS</div><button class="btn btn-gold btn-lg" onclick="document.getElementById('jackpot-overlay').classList.remove('active')">Collect!</button></div></div>
+
+<header class="site-header">
+  <a href="index.html" class="header-logo"><svg class="icon" aria-hidden="true"><use href="#icon-crown"/></svg>LuckyDev Casino</a>
+  <nav class="header-nav">
+    <a href="index.html"><svg class="icon" aria-hidden="true"><use href="#icon-home"/></svg>Lobby</a>
+    <a href="leaderboard.html"><svg class="icon" aria-hidden="true"><use href="#icon-trophy"/></svg>Leaderboard</a>
+    <a href="profile.html" class="active"><svg class="icon" aria-hidden="true"><use href="#icon-profile"/></svg>Profile</a>
+    <a href="howtoplay.html"><svg class="icon" aria-hidden="true"><use href="#icon-warning"/></svg>How to Play</a>
+  </nav>
+  <div class="header-right">
+    <div class="xp-bar-mini"><div class="level-label" id="xp-level-label">Lv.1</div><div class="xp-track"><div class="xp-fill" id="xp-fill" style="width:0%"></div></div></div>
+    <div class="balance-display" id="balance-display"><svg class="icon" aria-hidden="true"><use href="#icon-coin"/></svg><span class="balance-amount" id="balance-amount">0</span></div>
+    <button class="btn-icon" id="mute-btn"><svg class="icon" aria-hidden="true"><use href="#icon-volume"/></svg></button>
+  </div>
+</header>
+
+<main class="container page-fade" style="padding:24px 20px">
+
+  <!-- Profile Header -->
+  <div class="card" style="margin-bottom:24px;display:flex;align-items:center;gap:20px;flex-wrap:wrap">
+    <div style="width:80px;height:80px;border-radius:50%;background:var(--bg-panel);border:3px solid var(--gold);display:flex;align-items:center;justify-content:center">
+      <svg class="icon" style="width:48px;height:48px;color:var(--gold)" aria-hidden="true"><use href="#icon-profile"/></svg>
+    </div>
+    <div style="flex:1">
+      <div style="font-size:1.6rem;font-weight:900;color:var(--gold)" id="profile-name">Player</div>
+      <div id="profile-level-badge" style="margin-top:6px"></div>
+    </div>
+    <div style="text-align:right">
+      <div style="font-size:0.75rem;color:var(--text-sec)">TOTAL BALANCE</div>
+      <div style="font-size:2rem;font-weight:900;color:var(--gold);font-family:var(--font-mono)" id="profile-balance">0</div>
+    </div>
+  </div>
+
+  <!-- XP Progress -->
+  <div class="card" style="margin-bottom:24px">
+    <div class="widget-title">
+      <svg class="icon" aria-hidden="true"><use href="#icon-lightning-bolt"/></svg>
+      Experience Points
+    </div>
+    <div style="display:flex;justify-content:space-between;font-size:0.82rem;color:var(--text-sec);margin-bottom:8px">
+      <span id="xp-current">0 XP</span>
+      <span id="xp-next">Next level at 100 XP</span>
+    </div>
+    <div style="height:12px;background:var(--bg-panel);border-radius:6px;overflow:hidden">
+      <div id="xp-bar-full" style="height:100%;background:linear-gradient(90deg,var(--cyan),var(--gold));border-radius:6px;transition:width 1s ease;width:0%"></div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap" id="level-tiers"></div>
+  </div>
+
+  <!-- Stats Grid -->
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;margin-bottom:24px" id="stats-grid"></div>
+
+  <!-- Streak -->
+  <div class="streak-widget" style="margin-bottom:24px">
+    <svg class="icon streak-fire animate-fire" aria-hidden="true"><use href="#icon-fire"/></svg>
+    <div class="streak-info">
+      <div class="streak-count" id="profile-streak">0</div>
+      <div class="streak-label">Day Login Streak</div>
+      <div class="streak-bonus" id="profile-streak-bonus">Keep it up!</div>
+    </div>
+  </div>
+
+  <!-- Achievements -->
+  <div class="section-title" style="margin-top:8px">
+    <svg class="icon" aria-hidden="true"><use href="#icon-trophy"/></svg>
+    Achievements (<span id="achieve-count">0</span>/<span id="achieve-total">0</span>)
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;margin-bottom:24px" id="achievements-grid"></div>
+
+</main>
+
+<footer class="site-footer">
+  <div class="footer-disclaimer">For entertainment only — no real money involved.</div>
+  <div>LuckyDev Casino &copy; 2025</div>
+</footer>
+
+<script src="js/core.js"></script>
+<script src="js/addiction.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/particles.js"></script>
+<script src="js/firebase.js"></script>
+<script>
+const LEVEL_NAMES = ['Bronze','Silver','Gold','Platinum','Diamond','LEGEND'];
+const LEVEL_CLASSES = ['bronze','silver','gold-badge','platinum','diamond','legend'];
+const LEVEL_ICONS = ['chip-bronze','chip-silver','chip-gold','gem','diamond','crown'];
+const LEVEL_XP = [0,500,1500,4000,10000,30000];
+
+(async () => {
+  Core.init();
+  Core.setBalanceEl(document.getElementById('balance-display'));
+  Core.setXPEls(document.getElementById('xp-fill'), document.getElementById('xp-level-label'));
+  Core.updateBalanceUI(0, Core.getBalance());
+  Core.updateXPBar();
+  Audio.wireButtonSounds();
+  Addiction.init();
+  await FirebaseDB.init();
+
+  const state = Core.getState();
+  const xpInfo = Core.getXPInfo();
+
+  // Header
+  document.getElementById('profile-name').textContent = state.username;
+  document.getElementById('profile-balance').textContent = state.balance.toLocaleString();
+
+  // Level badge
+  const tier = state.tier || 0;
+  const badgeEl = document.getElementById('profile-level-badge');
+  if (badgeEl) {
+    badgeEl.innerHTML = `<span class="level-badge ${LEVEL_CLASSES[tier]}">
+      <svg class="icon" style="width:18px;height:18px" aria-hidden="true"><use href="#icon-${LEVEL_ICONS[tier]}"/></svg>
+      ${LEVEL_NAMES[tier]}
+    </span>`;
+  }
+
+  // XP bar
+  const xpPct = Math.min(100, ((xpInfo.xp - xpInfo.cur) / Math.max(1, xpInfo.next - xpInfo.cur)) * 100);
+  document.getElementById('xp-bar-full').style.width = xpPct + '%';
+  document.getElementById('xp-current').textContent = xpInfo.xp.toLocaleString() + ' XP';
+  document.getElementById('xp-next').textContent = xpInfo.next === Infinity ? 'MAX LEVEL' : `Next level at ${xpInfo.next.toLocaleString()} XP`;
+
+  // Level tiers
+  const tiersEl = document.getElementById('level-tiers');
+  if (tiersEl) {
+    tiersEl.innerHTML = LEVEL_NAMES.map((n, i) => `
+      <span class="level-badge ${LEVEL_CLASSES[i]}" style="${state.xp < LEVEL_XP[i] ? 'opacity:0.4' : ''}">
+        <svg class="icon" style="width:14px;height:14px" aria-hidden="true"><use href="#icon-${LEVEL_ICONS[i]}"/></svg>
+        ${n}
+      </span>`).join('');
+  }
+
+  // Stats grid
+  const statsGrid = document.getElementById('stats-grid');
+  const stats = [
+    { label: 'Total Bet', val: (state.totalBet||0).toLocaleString(), icon: 'coin', color: 'var(--gold)' },
+    { label: 'Total Won', val: (state.totalWon||0).toLocaleString(), icon: 'trophy', color: 'var(--green)' },
+    { label: 'Biggest Win', val: (state.biggestWin||0).toLocaleString(), icon: 'star', color: 'var(--gold)' },
+    { label: 'XP Level', val: xpInfo.level, icon: 'lightning-bolt', color: 'var(--cyan)' },
+    { label: 'Streak', val: (state.streak||0) + ' days', icon: 'fire', color: '#FF6B00' },
+    { label: 'Achievements', val: Object.keys(state.achievements||{}).length, icon: 'checkmark', color: 'var(--purple)' },
+  ];
+  if (statsGrid) {
+    statsGrid.innerHTML = stats.map(s => `
+      <div class="card" style="text-align:center;padding:16px">
+        <svg class="icon" style="width:28px;height:28px;color:${s.color};margin-bottom:8px" aria-hidden="true"><use href="#icon-${s.icon}"/></svg>
+        <div style="font-size:1.4rem;font-weight:900;color:${s.color}">${s.val}</div>
+        <div style="font-size:0.72rem;color:var(--text-sec);margin-top:4px">${s.label}</div>
+      </div>`).join('');
+  }
+
+  // Streak
+  document.getElementById('profile-streak').textContent = state.streak || 0;
+  const bonus = document.getElementById('profile-streak-bonus');
+  if (bonus) {
+    if ((state.streak||0) >= 7) bonus.textContent = '7-day bonus claimed!';
+    else bonus.textContent = `${7 - (state.streak||0)} more days for 1000 chip bonus!`;
+  }
+
+  // Achievements
+  const allAchievements = Core.getAchievements();
+  const unlockedCount = Object.keys(state.achievements || {}).length;
+  document.getElementById('achieve-count').textContent = unlockedCount;
+  document.getElementById('achieve-total').textContent = allAchievements.length;
+
+  const grid = document.getElementById('achievements-grid');
+  if (grid) {
+    grid.innerHTML = allAchievements.map(a => {
+      const unlocked = state.achievements && state.achievements[a.id];
+      const dateStr = unlocked ? new Date(unlocked).toLocaleDateString() : '';
+      return `
+        <div class="achievement-card ${unlocked ? 'unlocked' : 'locked'}">
+          <svg class="achievement-icon icon" aria-hidden="true"><use href="#icon-${a.icon}"/></svg>
+          <div>
+            <div class="achievement-name">${a.name}</div>
+            <div class="achievement-desc">${a.desc}</div>
+            ${unlocked
+              ? `<div class="achievement-date">Unlocked ${dateStr}</div>`
+              : `<div class="achievement-date"><svg class="icon" style="width:12px;height:12px" aria-hidden="true"><use href="#icon-lock"/></svg> +${a.xp} XP</div>`}
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  document.getElementById('mute-btn')?.addEventListener('click', () => {
+    const icon = document.querySelector('#mute-btn use');
+    const m = icon.getAttribute('href')==='#icon-mute';
+    Audio.setMuted(!m); icon.setAttribute('href', m?'#icon-volume':'#icon-mute');
+  });
+})();
+</script>
+</body>
+</html>

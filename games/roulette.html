@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Roulette — LuckyDev Casino</title>
+<link rel="stylesheet" href="../css/main.css"/>
+<link rel="stylesheet" href="../css/games.css"/>
+<link rel="stylesheet" href="../css/animations.css"/>
+<style>
+.roul-grid { display:grid; gap:3px; width:100%; max-width:600px; }
+.roul-num-grid { display:grid; grid-template-columns:repeat(12,1fr); gap:2px; }
+.roul-cell { aspect-ratio:1.2; border-radius:4px; display:flex; align-items:center; justify-content:center;
+  font-weight:800; font-size:0.72rem; cursor:pointer; border:2px solid transparent;
+  transition:all .15s; user-select:none; position:relative; }
+.roul-cell.red { background:#770000; color:white; }
+.roul-cell.black { background:#1a1a1a; color:white; }
+.roul-cell.green { background:#006600; color:white; }
+.roul-cell.selected { border-color:#FFD700; box-shadow:0 0 8px #FFD700; }
+.roul-cell:hover { filter:brightness(1.3); border-color:rgba(255,215,0,0.5); }
+.roul-outside { display:grid; grid-template-columns:repeat(3,1fr); gap:3px; margin-top:3px; }
+.roul-outside-wide { display:grid; grid-template-columns:repeat(6,1fr); gap:3px; margin-top:3px; }
+</style>
+</head>
+<body>
+<div style="display:none" id="svg-sprite-container"></div>
+<script>fetch('../assets/icons/sprite.svg').then(r=>r.text()).then(t=>{document.getElementById('svg-sprite-container').innerHTML=t;});</script>
+<div id="modal-overlay" class="modal-overlay" onclick="if(event.target===this)closeModal()"><div class="modal" id="modal-content"></div></div>
+<div id="toast-container"></div>
+<div id="bonus-popup"><div class="bonus-popup-title">Free Bonus!</div><div class="bonus-popup-amount">+100 CHIPS</div><div style="display:flex;gap:10px;justify-content:center;margin-top:16px"><button class="btn btn-gold" onclick="claimBonusPopup()">Claim!</button><button class="btn btn-ghost btn-sm" onclick="dismissBonusPopup()">Dismiss</button></div></div>
+<div id="jackpot-overlay"><div style="display:flex;flex-direction:column;align-items:center;gap:20px"><div class="jackpot-title">JACKPOT!!!</div><div class="jackpot-amount">+0 CHIPS</div><button class="btn btn-gold btn-lg" onclick="document.getElementById('jackpot-overlay').classList.remove('active')">Collect!</button></div></div>
+
+<header class="site-header">
+  <a href="../index.html" class="header-logo"><svg class="icon" aria-hidden="true"><use href="#icon-crown"/></svg>LuckyDev Casino</a>
+  <nav class="header-nav"><a href="../index.html"><svg class="icon" aria-hidden="true"><use href="#icon-home"/></svg>Lobby</a></nav>
+  <div class="header-right">
+    <div class="xp-bar-mini"><div class="level-label" id="xp-level-label">Lv.1</div><div class="xp-track"><div class="xp-fill" id="xp-fill" style="width:0%"></div></div></div>
+    <div class="balance-display" id="balance-display"><svg class="icon" aria-hidden="true"><use href="#icon-coin"/></svg><span class="balance-amount" id="balance-amount">0</span></div>
+    <button class="btn-icon" id="mute-btn"><svg class="icon" aria-hidden="true"><use href="#icon-volume"/></svg></button>
+  </div>
+</header>
+
+<div class="game-page">
+<div class="game-area" style="max-width:960px">
+  <div class="game-title">Roulette</div>
+  <div class="game-subtitle">Place your bets — spin the wheel — American or European</div>
+
+  <div style="display:flex;gap:24px;width:100%;flex-wrap:wrap;justify-content:center;align-items:flex-start">
+
+    <!-- Wheel -->
+    <div style="display:flex;flex-direction:column;align-items:center;gap:12px">
+      <canvas id="roulette-canvas" width="320" height="320"></canvas>
+      <div class="roulette-result" id="roulette-result" style="font-size:2.5rem;font-weight:900;min-height:60px;text-align:center"></div>
+      <div style="font-size:0.75rem;color:var(--text-sec)">Last results:</div>
+      <div style="display:flex;gap:4px;flex-wrap:wrap;justify-content:center" id="roul-history"></div>
+      <div style="display:flex;gap:10px;align-items:center">
+        <label style="font-size:0.8rem;color:var(--text-sec)">Mode:</label>
+        <select id="roul-mode" class="bet-input" style="width:140px">
+          <option value="european">European (0)</option>
+          <option value="american">American (0,00)</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Table -->
+    <div style="flex:1;min-width:300px">
+      <!-- Bet amount -->
+      <div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap">
+        <span style="font-size:0.78rem;color:var(--text-sec);align-self:center">Chip:</span>
+        <button class="btn-bet roul-quick" data-val="1">1</button>
+        <button class="btn-bet roul-quick" data-val="5">5</button>
+        <button class="btn-bet roul-quick" data-val="10">10</button>
+        <button class="btn-bet roul-quick" data-val="25">25</button>
+        <button class="btn-bet roul-quick" data-val="50">50</button>
+        <button class="btn-bet roul-quick" data-val="100">100</button>
+        <button class="btn btn-ghost btn-sm" id="roul-clear">Clear</button>
+      </div>
+
+      <!-- Number grid -->
+      <div class="roul-num-grid">
+        <div class="roul-cell green" data-bet="0" style="grid-column:1;grid-row:1/4">0</div>
+        <script>
+          const RED_N=[1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36];
+          document.currentScript.insertAdjacentHTML('afterend', (() => {
+            let html='';
+            // 3 rows (col 1=top row: 3,6,9... col 2=mid: 2,5,8... col 3=btm: 1,4,7...)
+            for(let r=0;r<3;r++){
+              for(let c=1;c<=12;c++){
+                const n=c*3-(2-r);
+                const isRed=RED_N.includes(n);
+                html+=`<div class="roul-cell ${isRed?'red':'black'}" data-bet="${n}">${n}</div>`;
+              }
+            }
+            return html;
+          })());
+        </script>
+      </div>
+
+      <!-- Dozens -->
+      <div class="roul-outside" style="margin-top:4px">
+        <div class="roul-cell black" data-bet="1st12" style="font-size:0.68rem">1st 12</div>
+        <div class="roul-cell black" data-bet="2nd12" style="font-size:0.68rem">2nd 12</div>
+        <div class="roul-cell black" data-bet="3rd12" style="font-size:0.68rem">3rd 12</div>
+      </div>
+
+      <!-- Outside bets -->
+      <div class="roul-outside-wide" style="margin-top:4px">
+        <div class="roul-cell black" data-bet="low" style="font-size:0.68rem">1-18</div>
+        <div class="roul-cell black" data-bet="even" style="font-size:0.68rem">Even</div>
+        <div class="roul-cell red" data-bet="red">Red</div>
+        <div class="roul-cell black" data-bet="black">Black</div>
+        <div class="roul-cell black" data-bet="odd" style="font-size:0.68rem">Odd</div>
+        <div class="roul-cell black" data-bet="high" style="font-size:0.68rem">19-36</div>
+      </div>
+
+      <div style="margin-top:12px">
+        <button class="btn btn-gold btn-lg" id="roul-spin" style="width:100%">
+          <svg class="icon" aria-hidden="true"><use href="#icon-star"/></svg>
+          Spin the Wheel
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<footer class="site-footer">
+  <div class="footer-disclaimer">For entertainment only — no real money involved.</div>
+</footer>
+
+<script src="../js/core.js"></script>
+<script src="../js/addiction.js"></script>
+<script src="../js/audio.js"></script>
+<script src="../js/particles.js"></script>
+<script src="../js/firebase.js"></script>
+<script src="../js/games/roulette.js"></script>
+<script>
+(async () => {
+  Core.init(); Particles.init();
+  Core.setBalanceEl(document.getElementById('balance-display'));
+  Core.setXPEls(document.getElementById('xp-fill'), document.getElementById('xp-level-label'));
+  Core.updateBalanceUI(0, Core.getBalance()); Core.updateXPBar();
+  Audio.wireButtonSounds(); Addiction.init();
+  await FirebaseDB.init();
+  Roulette.init();
+  document.getElementById('mute-btn')?.addEventListener('click', () => {
+    const icon = document.querySelector('#mute-btn use');
+    const m = icon.getAttribute('href')==='#icon-mute';
+    Audio.setMuted(!m); icon.setAttribute('href', m?'#icon-volume':'#icon-mute');
+  });
+})();
+</script>
+</body>
+</html>

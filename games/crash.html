@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Crash — LuckyDev Casino</title>
+<link rel="stylesheet" href="../css/main.css"/>
+<link rel="stylesheet" href="../css/games.css"/>
+<link rel="stylesheet" href="../css/animations.css"/>
+</head>
+<body>
+<div style="display:none" id="svg-sprite-container"></div>
+<script>fetch('../assets/icons/sprite.svg').then(r=>r.text()).then(t=>{document.getElementById('svg-sprite-container').innerHTML=t;});</script>
+<div id="modal-overlay" class="modal-overlay" onclick="if(event.target===this)closeModal()"><div class="modal" id="modal-content"></div></div>
+<div id="toast-container"></div>
+<div id="bonus-popup">
+  <div class="bonus-popup-title">Free Bonus!</div>
+  <div class="bonus-popup-amount">+100 CHIPS</div>
+  <div style="display:flex;gap:10px;justify-content:center;margin-top:16px">
+    <button class="btn btn-gold" onclick="claimBonusPopup()">Claim!</button>
+    <button class="btn btn-ghost btn-sm" onclick="dismissBonusPopup()">Dismiss</button>
+  </div>
+</div>
+<div id="jackpot-overlay">
+  <div style="display:flex;flex-direction:column;align-items:center;gap:20px">
+    <div class="jackpot-title">JACKPOT!!!</div>
+    <div class="jackpot-amount">+0 CHIPS</div>
+    <button class="btn btn-gold btn-lg" onclick="document.getElementById('jackpot-overlay').classList.remove('active')">Collect!</button>
+  </div>
+</div>
+
+<header class="site-header">
+  <a href="../index.html" class="header-logo">
+    <svg class="icon" aria-hidden="true"><use href="#icon-crown"/></svg>LuckyDev Casino
+  </a>
+  <nav class="header-nav">
+    <a href="../index.html"><svg class="icon" aria-hidden="true"><use href="#icon-home"/></svg>Lobby</a>
+  </nav>
+  <div class="header-right">
+    <div class="xp-bar-mini">
+      <div class="level-label" id="xp-level-label">Lv.1</div>
+      <div class="xp-track"><div class="xp-fill" id="xp-fill" style="width:0%"></div></div>
+    </div>
+    <div class="balance-display" id="balance-display">
+      <svg class="icon" aria-hidden="true"><use href="#icon-coin"/></svg>
+      <span class="balance-amount" id="balance-amount">0</span>
+    </div>
+    <button class="btn-icon" id="mute-btn">
+      <svg class="icon" aria-hidden="true"><use href="#icon-volume"/></svg>
+    </button>
+  </div>
+</header>
+
+<div class="game-page">
+<div class="game-area" style="max-width:960px">
+  <div class="game-title">Crash</div>
+  <div class="game-subtitle">Cash out before the rocket crashes! The longer you wait, the bigger the reward.</div>
+
+  <!-- LAST ROUND FOMO -->
+  <div style="font-size:0.85rem;color:var(--orange);font-weight:700;margin-bottom:12px" id="last-round"></div>
+
+  <div class="crash-layout">
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <!-- Multiplier display -->
+      <div class="crash-multiplier" id="crash-multiplier">1.00x</div>
+      <!-- Canvas -->
+      <canvas id="crash-canvas" style="width:100%;height:300px"></canvas>
+      <!-- Status -->
+      <div style="text-align:center;font-size:0.9rem;color:var(--text-sec)" id="crash-status">Place your bet!</div>
+      <!-- History -->
+      <div>
+        <div style="font-size:0.75rem;color:var(--text-sec);margin-bottom:6px">Last 20 rounds:</div>
+        <div class="crash-history" id="crash-history"></div>
+      </div>
+    </div>
+
+    <div class="crash-sidebar">
+      <!-- Bet controls -->
+      <div class="card">
+        <div class="bet-label" style="margin-bottom:8px">Bet Amount</div>
+        <input type="number" id="crash-bet" class="bet-input" value="10" min="1" style="width:100%;margin-bottom:8px"/>
+        <div class="bet-quick" style="margin-bottom:12px">
+          <button class="btn-bet" onclick="setCrashBet(10)">10</button>
+          <button class="btn-bet" onclick="setCrashBet(50)">50</button>
+          <button class="btn-bet" onclick="setCrashBet(100)">100</button>
+          <button class="btn-bet" onclick="setCrashBet(500)">500</button>
+        </div>
+        <div class="bet-label" style="margin-bottom:4px">Auto Cash-out at</div>
+        <input type="number" id="auto-cashout" class="bet-input" value="2.0" min="1.01" step="0.1" style="width:100%;margin-bottom:12px"/>
+        <button class="btn btn-gold" id="bet-btn" style="width:100%;margin-bottom:8px">Place Bet</button>
+        <button class="btn btn-green btn-lg" id="cashout-btn" style="width:100%" disabled>CASH OUT</button>
+      </div>
+
+      <!-- Chat -->
+      <div style="font-size:0.75rem;color:var(--text-sec);font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-top:4px">Live Chat</div>
+      <div class="crash-chat" id="crash-chat"></div>
+    </div>
+  </div>
+</div>
+</div>
+
+<footer class="site-footer">
+  <div class="footer-disclaimer">For entertainment only — no real money involved.</div>
+</footer>
+
+<script src="../js/core.js"></script>
+<script src="../js/addiction.js"></script>
+<script src="../js/audio.js"></script>
+<script src="../js/particles.js"></script>
+<script src="../js/firebase.js"></script>
+<script src="../js/games/crash.js"></script>
+<script>
+function setCrashBet(v) {
+  const inp = document.getElementById('crash-bet');
+  if (inp) inp.value = v;
+}
+(async () => {
+  Core.init();
+  Particles.init();
+  Core.setBalanceEl(document.getElementById('balance-display'));
+  Core.setXPEls(document.getElementById('xp-fill'), document.getElementById('xp-level-label'));
+  Core.updateBalanceUI(0, Core.getBalance());
+  Core.updateXPBar();
+  Audio.wireButtonSounds();
+  Addiction.init();
+  await FirebaseDB.init();
+  Crash.init();
+  const muteBtn = document.getElementById('mute-btn');
+  muteBtn?.addEventListener('click', () => {
+    const icon = muteBtn.querySelector('use');
+    const isMuted = icon.getAttribute('href') === '#icon-mute';
+    Audio.setMuted(!isMuted);
+    icon.setAttribute('href', isMuted ? '#icon-volume' : '#icon-mute');
+  });
+})();
+</script>
+</body>
+</html>

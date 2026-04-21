@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Leaderboard — LuckyDev Casino</title>
+<link rel="stylesheet" href="css/main.css"/>
+<link rel="stylesheet" href="css/animations.css"/>
+</head>
+<body>
+<div style="display:none" id="svg-sprite-container"></div>
+<script>fetch('assets/icons/sprite.svg').then(r=>r.text()).then(t=>{document.getElementById('svg-sprite-container').innerHTML=t;});</script>
+<div id="modal-overlay" class="modal-overlay" onclick="if(event.target===this)closeModal()"><div class="modal" id="modal-content"></div></div>
+<div id="toast-container"></div>
+<div id="bonus-popup"><div class="bonus-popup-title">Free Bonus!</div><div class="bonus-popup-amount">+100 CHIPS</div><div style="display:flex;gap:10px;justify-content:center;margin-top:16px"><button class="btn btn-gold" onclick="claimBonusPopup()">Claim!</button><button class="btn btn-ghost btn-sm" onclick="dismissBonusPopup()">Dismiss</button></div></div>
+<div id="jackpot-overlay"><div style="display:flex;flex-direction:column;align-items:center;gap:20px"><div class="jackpot-title">JACKPOT!!!</div><div class="jackpot-amount">+0 CHIPS</div><button class="btn btn-gold btn-lg" onclick="document.getElementById('jackpot-overlay').classList.remove('active')">Collect!</button></div></div>
+
+<header class="site-header">
+  <a href="index.html" class="header-logo"><svg class="icon" aria-hidden="true"><use href="#icon-crown"/></svg>LuckyDev Casino</a>
+  <nav class="header-nav">
+    <a href="index.html"><svg class="icon" aria-hidden="true"><use href="#icon-home"/></svg>Lobby</a>
+    <a href="leaderboard.html" class="active"><svg class="icon" aria-hidden="true"><use href="#icon-trophy"/></svg>Leaderboard</a>
+    <a href="profile.html"><svg class="icon" aria-hidden="true"><use href="#icon-profile"/></svg>Profile</a>
+    <a href="howtoplay.html"><svg class="icon" aria-hidden="true"><use href="#icon-warning"/></svg>How to Play</a>
+  </nav>
+  <div class="header-right">
+    <div class="xp-bar-mini"><div class="level-label" id="xp-level-label">Lv.1</div><div class="xp-track"><div class="xp-fill" id="xp-fill" style="width:0%"></div></div></div>
+    <div class="balance-display" id="balance-display"><svg class="icon" aria-hidden="true"><use href="#icon-coin"/></svg><span class="balance-amount" id="balance-amount">0</span></div>
+    <button class="btn-icon" id="mute-btn"><svg class="icon" aria-hidden="true"><use href="#icon-volume"/></svg></button>
+  </div>
+</header>
+
+<main class="container page-fade" style="padding:24px 20px">
+
+  <div class="section-title">
+    <svg class="icon animate-trophy" aria-hidden="true"><use href="#icon-trophy"/></svg>
+    Leaderboard
+    <span style="font-size:0.72rem;color:var(--text-sec);font-weight:400;margin-left:8px">Auto-refreshes every 8s</span>
+    <span style="margin-left:auto;font-size:0.75rem;color:var(--green)" id="lb-refresh-status">Live</span>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" data-tab="balance">
+      <svg class="icon" aria-hidden="true"><use href="#icon-coin"/></svg>Top Balances
+    </button>
+    <button class="tab" data-tab="wins">
+      <svg class="icon" aria-hidden="true"><use href="#icon-star"/></svg>Biggest Wins
+    </button>
+    <button class="tab" data-tab="activity">
+      <svg class="icon" aria-hidden="true"><use href="#icon-lightning-bolt"/></svg>Live Activity
+    </button>
+  </div>
+
+  <!-- Balance Tab -->
+  <div id="tab-balance" class="tab-content">
+    <!-- FOMO banner -->
+    <div id="fomo-banner" style="display:none;background:rgba(255,215,0,0.08);border:1px solid var(--gold-dim);border-radius:var(--radius-md);padding:12px 16px;margin-bottom:16px;font-size:0.85rem;color:var(--gold)"></div>
+
+    <div class="card" style="padding:0;overflow:hidden">
+      <table class="lb-table" id="lb-balance-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Player</th>
+            <th>Balance</th>
+            <th>Level</th>
+            <th>XP</th>
+            <th>Games</th>
+          </tr>
+        </thead>
+        <tbody id="lb-balance-body">
+          <tr><td colspan="6" style="text-align:center;padding:32px;color:var(--text-sec)">Loading...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Wins Tab -->
+  <div id="tab-wins" class="tab-content" style="display:none">
+    <div class="card" style="padding:0;overflow:hidden">
+      <table class="lb-table" id="lb-wins-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Player</th>
+            <th>Amount</th>
+            <th>Game</th>
+          </tr>
+        </thead>
+        <tbody id="lb-wins-body">
+          <tr><td colspan="4" style="text-align:center;padding:32px;color:var(--text-sec)">Loading...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Activity Tab -->
+  <div id="tab-activity" class="tab-content" style="display:none">
+    <div class="card">
+      <div class="live-ticker" style="margin:0 0 12px">
+        <div class="ticker-label">LIVE FEED</div>
+      </div>
+      <div id="activity-list" style="display:flex;flex-direction:column;gap:8px"></div>
+    </div>
+  </div>
+
+</main>
+
+<footer class="site-footer">
+  <div class="footer-disclaimer">For entertainment only — no real money involved.</div>
+  <div>LuckyDev Casino &copy; 2025</div>
+</footer>
+
+<script src="js/core.js"></script>
+<script src="js/addiction.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/particles.js"></script>
+<script src="js/firebase.js"></script>
+<script>
+const LEVEL_NAMES = ['Bronze','Silver','Gold','Platinum','Diamond','LEGEND'];
+
+async function renderBalanceLB() {
+  const rows = await FirebaseDB.getLeaderboard(50);
+  const myName = Core.getState().username;
+  const myRow = rows.find(r => r.username === myName);
+  const myRank = rows.findIndex(r => r.username === myName) + 1;
+
+  // FOMO banner
+  if (myRank > 1 && myRank <= rows.length) {
+    const above = rows[myRank - 2];
+    if (above) {
+      const gap = above.balance - (myRow?.balance || 0);
+      if (gap > 0 && gap < 10000) {
+        const banner = document.getElementById('fomo-banner');
+        if (banner) {
+          banner.style.display = '';
+          banner.innerHTML = `<svg class="icon" style="width:16px;height:16px" aria-hidden="true"><use href="#icon-trophy"/></svg> Only <strong>${gap.toLocaleString()} chips</strong> away from rank ${myRank - 1}!`;
+        }
+      }
+    }
+  }
+
+  const tbody = document.getElementById('lb-balance-body');
+  if (!tbody) return;
+  tbody.innerHTML = rows.map((r, i) => {
+    const isMe = r.username === myName;
+    const tier = Math.min(r.level || 0, LEVEL_NAMES.length - 1);
+    const rankClass = i === 0 ? 'rank-1' : i === 1 ? 'rank-2' : i === 2 ? 'rank-3' : 'rank-other';
+    return `<tr class="${isMe ? 'me' : ''}">
+      <td><span class="rank-badge ${rankClass}">${i+1}</span></td>
+      <td style="font-weight:600;color:${isMe?'var(--gold)':'var(--text-pri)'}">${r.username}${isMe?' (You)':''}</td>
+      <td style="font-family:var(--font-mono);color:var(--gold);font-weight:700">${(r.balance||0).toLocaleString()}</td>
+      <td><span class="level-badge ${['bronze','silver','gold-badge','platinum','diamond','legend'][tier]}" style="font-size:0.7rem;padding:3px 8px">${LEVEL_NAMES[tier]}</span></td>
+      <td style="color:var(--cyan);font-family:var(--font-mono)">${(r.xp||0).toLocaleString()}</td>
+      <td style="color:var(--text-sec)">${r.gamesPlayed||0}</td>
+    </tr>`;
+  }).join('');
+
+  // Sticky me row if not in top 50
+  if (myRank > 50 && myRow) {
+    tbody.innerHTML += `<tr style="border-top:2px solid var(--gold)">
+      <td colspan="6" style="text-align:center;color:var(--text-sec);font-size:0.8rem;padding:8px">Your rank: not in top 50 yet</td>
+    </tr>`;
+  }
+}
+
+async function renderWinsLB() {
+  const rows = await FirebaseDB.getBiggestWins(10);
+  const tbody = document.getElementById('lb-wins-body');
+  if (!tbody) return;
+  const myName = Core.getState().username;
+  tbody.innerHTML = rows.map((r, i) => {
+    const isMe = r.username === myName;
+    const rankClass = i === 0 ? 'rank-1' : i === 1 ? 'rank-2' : i === 2 ? 'rank-3' : 'rank-other';
+    return `<tr class="${isMe ? 'me' : ''}">
+      <td><span class="rank-badge ${rankClass}">${i+1}</span></td>
+      <td style="color:${isMe?'var(--gold)':'var(--text-pri)'}">${r.username}${isMe?' (You)':''}</td>
+      <td style="font-family:var(--font-mono);color:var(--gold);font-weight:700">${(r.amount||0).toLocaleString()}</td>
+      <td style="color:var(--text-sec)">${r.game||'—'}</td>
+    </tr>`;
+  }).join('');
+}
+
+function renderActivity() {
+  const FAKE_NAMES = ['LuckyAce','SlotKing','GoldRush','WildCard','CrashPro','BetMaster','DiamondHnd','HighRoller'];
+  const GAMES = ['Slots','Crash','Plinko','Blackjack','Roulette','Mines','Dice'];
+  const el = document.getElementById('activity-list');
+  if (!el) return;
+  const items = Array.from({length: 20}, () => ({
+    player: FAKE_NAMES[Math.floor(Math.random() * FAKE_NAMES.length)],
+    game: GAMES[Math.floor(Math.random() * GAMES.length)],
+    amount: Math.floor(Math.random() * 5000 + 50),
+    t: Math.floor(Math.random() * 60),
+  }));
+  el.innerHTML = items.map(item => `
+    <div style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--bg-panel);border-radius:var(--radius-sm)">
+      <svg class="icon" style="width:18px;height:18px;color:var(--gold)" aria-hidden="true"><use href="#icon-coin"/></svg>
+      <span style="color:var(--cyan);font-weight:700">${item.player}</span>
+      <span style="color:var(--text-sec);font-size:0.82rem">won</span>
+      <span style="color:var(--gold);font-weight:700">${item.amount.toLocaleString()} chips</span>
+      <span style="color:var(--text-sec);font-size:0.82rem">on ${item.game}</span>
+      <span style="margin-left:auto;color:var(--text-dim);font-size:0.72rem">${item.t}s ago</span>
+    </div>
+  `).join('');
+}
+
+// Tabs
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(t => t.style.display = 'none');
+    tab.classList.add('active');
+    const contentId = 'tab-' + tab.dataset.tab;
+    const content = document.getElementById(contentId);
+    if (content) content.style.display = '';
+    Audio.playClick();
+    if (tab.dataset.tab === 'activity') renderActivity();
+  });
+});
+
+(async () => {
+  Core.init();
+  Core.setBalanceEl(document.getElementById('balance-display'));
+  Core.setXPEls(document.getElementById('xp-fill'), document.getElementById('xp-level-label'));
+  Core.updateBalanceUI(0, Core.getBalance());
+  Core.updateXPBar();
+  Audio.wireButtonSounds();
+  Addiction.init();
+  await FirebaseDB.init();
+
+  renderBalanceLB();
+  renderWinsLB();
+
+  // Auto-refresh every 8s
+  let refreshCount = 0;
+  const refreshInterval = setInterval(async () => {
+    refreshCount++;
+    const statusEl = document.getElementById('lb-refresh-status');
+    if (statusEl) statusEl.textContent = 'Refreshing...';
+    await renderBalanceLB();
+    if (statusEl) statusEl.textContent = `Live (${refreshCount} updates)`;
+  }, 8000);
+
+  document.getElementById('mute-btn')?.addEventListener('click', () => {
+    const icon = document.querySelector('#mute-btn use');
+    const m = icon.getAttribute('href')==='#icon-mute';
+    Audio.setMuted(!m); icon.setAttribute('href', m?'#icon-volume':'#icon-mute');
+  });
+
+  // ADDICTION: leaderboard FOMO check
+  setTimeout(() => Addiction.showLeaderboardFOMO(Core.getBalance(), 5000, 10), 3000);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>LuckyDev Casino — Play for Fun</title>
+<meta name="description" content="LuckyDev Casino — Free play-money casino games. No real money involved."/>
+<link rel="manifest" href="manifest.json"/>
+<meta name="theme-color" content="#0a0a0f"/>
+<link rel="stylesheet" href="css/main.css"/>
+<link rel="stylesheet" href="css/animations.css"/>
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+  }
+</script>
+</head>
+<body>
+
+<!-- SVG SPRITE -->
+<div style="display:none" id="svg-sprite-container"></div>
+<script>
+  fetch('assets/icons/sprite.svg').then(r=>r.text()).then(t=>{
+    document.getElementById('svg-sprite-container').innerHTML=t;
+  });
+</script>
+
+<!-- LOADING SCREEN -->
+<div id="loading-screen">
+  <div class="loading-logo">LuckyDev Casino</div>
+  <div style="color:var(--text-sec);font-size:0.85rem;margin-top:8px">Entertainment Only — No Real Money</div>
+  <div class="loading-bar-track" style="margin-top:20px"><div class="loading-bar-fill"></div></div>
+</div>
+
+<!-- JACKPOT OVERLAY -->
+<div id="jackpot-overlay">
+  <div style="display:flex;flex-direction:column;align-items:center;gap:20px">
+    <svg class="icon" style="width:100px;height:100px;color:#FFD700" aria-hidden="true"><use href="#icon-crown"/></svg>
+    <div class="jackpot-title">JACKPOT!!!</div>
+    <div class="jackpot-amount">+0 CHIPS</div>
+    <button class="btn btn-gold btn-lg" onclick="document.getElementById('jackpot-overlay').classList.remove('active')">Collect Winnings</button>
+  </div>
+</div>
+
+<!-- BONUS POPUP -->
+<div id="bonus-popup">
+  <div style="font-size:0.8rem;color:var(--cyan);font-weight:700;margin-bottom:4px">LUCKY SPIN!</div>
+  <div class="bonus-popup-title">You've Been Chosen!</div>
+  <div class="bonus-popup-sub">Claim your free bonus chips right now!</div>
+  <div class="bonus-popup-amount">+100 CHIPS</div>
+  <div style="display:flex;gap:10px;justify-content:center;margin-top:16px">
+    <button class="btn btn-gold" onclick="claimBonusPopup()">Claim Now!</button>
+    <button class="btn btn-ghost btn-sm" onclick="dismissBonusPopup()">Dismiss</button>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div id="modal-overlay" class="modal-overlay" onclick="if(event.target===this)closeModal()">
+  <div class="modal" id="modal-content"></div>
+</div>
+
+<!-- TOAST CONTAINER -->
+<div id="toast-container"></div>
+
+<!-- HEADER -->
+<header class="site-header">
+  <a href="index.html" class="header-logo">
+    <svg class="icon" aria-hidden="true"><use href="#icon-crown"/></svg>
+    LuckyDev Casino
+  </a>
+  <nav class="header-nav">
+    <a href="index.html" class="active">
+      <svg class="icon" aria-hidden="true"><use href="#icon-home"/></svg>Lobby
+    </a>
+    <a href="leaderboard.html">
+      <svg class="icon" aria-hidden="true"><use href="#icon-trophy"/></svg>Leaderboard
+    </a>
+    <a href="profile.html">
+      <svg class="icon" aria-hidden="true"><use href="#icon-profile"/></svg>Profile
+    </a>
+    <a href="howtoplay.html">
+      <svg class="icon" aria-hidden="true"><use href="#icon-warning"/></svg>How to Play
+    </a>
+  </nav>
+  <div class="header-right">
+    <div class="xp-bar-mini">
+      <div class="level-label" id="xp-level-label">Lv.1</div>
+      <div class="xp-track"><div class="xp-fill" id="xp-fill" style="width:0%"></div></div>
+    </div>
+    <div class="balance-display" id="balance-display">
+      <svg class="icon" aria-hidden="true"><use href="#icon-coin"/></svg>
+      <span class="balance-amount" id="balance-amount">1,000</span>
+    </div>
+    <button class="btn-icon" id="mute-btn" title="Toggle sound">
+      <svg class="icon" aria-hidden="true"><use href="#icon-volume"/></svg>
+    </button>
+  </div>
+</header>
+
+<!-- MAIN -->
+<main class="container page-fade">
+
+  <!-- LIVE TICKER -->
+  <div class="live-ticker">
+    <div class="ticker-label">LIVE</div>
+    <div class="ticker-scroll">
+      <div class="ticker-inner" id="ticker-inner"></div>
+    </div>
+  </div>
+
+  <!-- STATS BAR -->
+  <div class="stats-bar">
+    <div class="stat-pill online-count">
+      <svg class="icon" aria-hidden="true"><use href="#icon-profile"/></svg>
+      <span class="val" id="online-count">847</span> online now
+    </div>
+    <div class="stat-pill">
+      <svg class="icon" style="color:var(--gold)" aria-hidden="true"><use href="#icon-fire"/></svg>
+      Daily Streak: <span class="val" id="streak-count-stat">0</span>
+    </div>
+    <div class="stat-pill">
+      <svg class="icon" style="color:var(--cyan)" aria-hidden="true"><use href="#icon-clock"/></svg>
+      Missions reset in: <span class="countdown" id="mission-countdown">00:00:00</span>
+    </div>
+  </div>
+
+  <div class="page-layout">
+    <div class="main-col">
+
+      <!-- GAMES SECTION -->
+      <div class="section-title">
+        <svg class="icon" aria-hidden="true"><use href="#icon-star"/></svg>
+        Casino Games
+      </div>
+
+      <div class="game-grid">
+
+        <a href="games/slots.html" class="game-card" onclick="Audio.playClick()">
+          <div class="game-card-preview" style="background:linear-gradient(135deg,#1a0a00,#2a1200)">
+            <div class="game-card-bg"><svg class="icon" aria-hidden="true"><use href="#icon-seven"/></svg></div>
+            <div style="display:flex;gap:8px">
+              <svg class="icon" style="width:40px;height:40px;color:#FF3B30" aria-hidden="true"><use href="#icon-seven"/></svg>
+              <svg class="icon" style="width:40px;height:40px;color:#FFD700" aria-hidden="true"><use href="#icon-crown"/></svg>
+              <svg class="icon" style="width:40px;height:40px;color:#00FFFF" aria-hidden="true"><use href="#icon-diamond"/></svg>
+            </div>
+          </div>
+          <div class="game-card-body">
+            <div class="game-card-name">Slots</div>
+            <div class="game-card-desc">5 reels — cascading wins — jackpot</div>
+          </div>
+          <div class="game-card-badge">HOT</div>
+        </a>
+
+        <a href="games/crash.html" class="game-card" onclick="Audio.playClick()">
+          <div class="game-card-preview" style="background:linear-gradient(135deg,#000d1a,#001a33)">
+            <div class="game-card-bg"><svg class="icon" aria-hidden="true"><use href="#icon-lightning"/></svg></div>
+            <svg class="icon" style="width:64px;height:64px;color:#00FFFF;animation:lightning-pulse 1s infinite" aria-hidden="true"><use href="#icon-lightning"/></svg>
+          </div>
+          <div class="game-card-body">
+            <div class="game-card-name">Crash</div>
+            <div class="game-card-desc">Cash out before it crashes!</div>
+          </div>
+        </a>
+
+        <a href="games/plinko.html" class="game-card" onclick="Audio.playClick()">
+          <div class="game-card-preview" style="background:linear-gradient(135deg,#001a0d,#00330d)">
+            <div class="game-card-bg"><svg class="icon" aria-hidden="true"><use href="#icon-star"/></svg></div>
+            <svg class="icon" style="width:64px;height:64px;color:#30D158" aria-hidden="true"><use href="#icon-gem"/></svg>
+          </div>
+          <div class="game-card-body">
+            <div class="game-card-name">Plinko</div>
+            <div class="game-card-desc">Physics ball drop — 1000x jackpot</div>
+          </div>
+        </a>
+
+        <a href="games/blackjack.html" class="game-card" onclick="Audio.playClick()">
+          <div class="game-card-preview" style="background:linear-gradient(135deg,#0d2e18,#071508)">
+            <div class="game-card-bg"><svg class="icon" aria-hidden="true"><use href="#icon-card-spade"/></svg></div>
+            <div style="display:flex;gap:-8px">
+              <svg class="icon" style="width:52px;height:52px;color:white" aria-hidden="true"><use href="#icon-card"/></svg>
+              <svg class="icon" style="width:52px;height:52px;color:#CC0000" aria-hidden="true"><use href="#icon-card-heart"/></svg>
+            </div>
+          </div>
+          <div class="game-card-body">
+            <div class="game-card-name">Blackjack</div>
+            <div class="game-card-desc">Beat the dealer — Vegas rules</div>
+          </div>
+        </a>
+
+        <a href="games/roulette.html" class="game-card" onclick="Audio.playClick()">
+          <div class="game-card-preview" style="background:linear-gradient(135deg,#1a0000,#2a0000)">
+            <div class="game-card-bg"><svg class="icon" aria-hidden="true"><use href="#icon-coin"/></svg></div>
+            <div style="display:flex;gap:8px">
+              <span style="display:inline-block;width:32px;height:32px;border-radius:50%;background:#CC0000;border:2px solid #FF3B30"></span>
+              <span style="display:inline-block;width:32px;height:32px;border-radius:50%;background:#111;border:2px solid #444"></span>
+              <span style="display:inline-block;width:32px;height:32px;border-radius:50%;background:#006600;border:2px solid #00AA00"></span>
+            </div>
+          </div>
+          <div class="game-card-body">
+            <div class="game-card-name">Roulette</div>
+            <div class="game-card-desc">Spin the wheel — American/European</div>
+          </div>
+        </a>
+
+        <a href="games/mines.html" class="game-card" onclick="Audio.playClick()">
+          <div class="game-card-preview" style="background:linear-gradient(135deg,#1a0000,#330000)">
+            <div class="game-card-bg"><svg class="icon" aria-hidden="true"><use href="#icon-skull"/></svg></div>
+            <svg class="icon" style="width:64px;height:64px;color:#FF3B30" aria-hidden="true"><use href="#icon-skull"/></svg>
+          </div>
+          <div class="game-card-body">
+            <div class="game-card-name">Mines</div>
+            <div class="game-card-desc">Avoid the bombs — cash out anytime</div>
+          </div>
+        </a>
+
+        <a href="games/dice.html" class="game-card" onclick="Audio.playClick()">
+          <div class="game-card-preview" style="background:linear-gradient(135deg,#00001a,#0a0a2e)">
+            <div class="game-card-bg"><svg class="icon" aria-hidden="true"><use href="#icon-dice-6"/></svg></div>
+            <svg class="icon" style="width:64px;height:64px;color:white" aria-hidden="true"><use href="#icon-dice-5"/></svg>
+          </div>
+          <div class="game-card-body">
+            <div class="game-card-name">Dice</div>
+            <div class="game-card-desc">Roll over/under — 1% to 95% win chance</div>
+          </div>
+        </a>
+
+        <a href="games/coinflip.html" class="game-card" onclick="Audio.playClick()">
+          <div class="game-card-preview" style="background:linear-gradient(135deg,#1a1400,#2a2000)">
+            <div class="game-card-bg"><svg class="icon" aria-hidden="true"><use href="#icon-coin"/></svg></div>
+            <svg class="icon" style="width:72px;height:72px;color:#FFD700;animation:coin-spin 2s linear infinite" aria-hidden="true"><use href="#icon-coin"/></svg>
+          </div>
+          <div class="game-card-body">
+            <div class="game-card-name">Coin Flip</div>
+            <div class="game-card-desc">Heads or tails — best of 3</div>
+          </div>
+        </a>
+
+        <a href="games/towers.html" class="game-card" onclick="Audio.playClick()">
+          <div class="game-card-preview" style="background:linear-gradient(135deg,#000d1a,#001433)">
+            <div class="game-card-bg"><svg class="icon" aria-hidden="true"><use href="#icon-sword"/></svg></div>
+            <svg class="icon" style="width:64px;height:64px;color:var(--cyan)" aria-hidden="true"><use href="#icon-shield"/></svg>
+          </div>
+          <div class="game-card-body">
+            <div class="game-card-name">Towers</div>
+            <div class="game-card-desc">Climb floors — one wrong step ends it</div>
+          </div>
+        </a>
+
+        <a href="games/videopoker.html" class="game-card" onclick="Audio.playClick()">
+          <div class="game-card-preview" style="background:linear-gradient(135deg,#0d0d1a,#1a1a30)">
+            <div class="game-card-bg"><svg class="icon" aria-hidden="true"><use href="#icon-card-spade"/></svg></div>
+            <div style="display:flex;gap:4px">
+              <svg class="icon" style="width:36px;height:36px;color:white" aria-hidden="true"><use href="#icon-card-spade"/></svg>
+              <svg class="icon" style="width:36px;height:36px;color:#CC0000" aria-hidden="true"><use href="#icon-card-heart"/></svg>
+              <svg class="icon" style="width:36px;height:36px;color:#CC0000" aria-hidden="true"><use href="#icon-card-diamond"/></svg>
+              <svg class="icon" style="width:36px;height:36px;color:white" aria-hidden="true"><use href="#icon-card-club"/></svg>
+            </div>
+          </div>
+          <div class="game-card-body">
+            <div class="game-card-name">Video Poker</div>
+            <div class="game-card-desc">Jacks or Better — Royal Flush jackpot</div>
+          </div>
+        </a>
+
+      </div>
+    </div>
+
+    <!-- SIDEBAR -->
+    <div class="sidebar">
+
+      <!-- STREAK -->
+      <div class="streak-widget" style="margin-bottom:16px">
+        <svg class="icon streak-fire animate-fire" aria-hidden="true"><use href="#icon-fire"/></svg>
+        <div class="streak-info">
+          <div class="streak-count" id="streak-count">0</div>
+          <div class="streak-label">Day Streak</div>
+          <div class="streak-bonus" id="streak-bonus">Keep logging in daily!</div>
+        </div>
+      </div>
+
+      <!-- MISSIONS -->
+      <div class="missions-widget" style="margin-bottom:16px">
+        <div class="widget-title">
+          <svg class="icon" aria-hidden="true"><use href="#icon-checkmark"/></svg>
+          Daily Missions
+        </div>
+        <div id="missions-list"></div>
+      </div>
+
+      <!-- LEADERBOARD PREVIEW -->
+      <div class="card" style="margin-bottom:16px">
+        <div class="widget-title">
+          <svg class="icon" aria-hidden="true"><use href="#icon-trophy"/></svg>
+          Top Players
+        </div>
+        <div id="lb-preview"></div>
+        <a href="leaderboard.html" class="btn btn-ghost btn-sm" style="width:100%;margin-top:12px;justify-content:center">Full Leaderboard</a>
+      </div>
+
+      <!-- REBUY SECTION -->
+      <div class="card" id="rebuy-section" style="display:none">
+        <div class="widget-title">
+          <svg class="icon" aria-hidden="true"><use href="#icon-coin"/></svg>
+          Out of Chips?
+        </div>
+        <p style="font-size:0.82rem;color:var(--text-sec);margin-bottom:12px">Get 500 chips to keep playing!</p>
+        <button class="btn btn-gold" style="width:100%" onclick="doRebuy()">Free Rebuy</button>
+        <div id="rebuy-cd" style="font-size:0.75rem;color:var(--text-dim);text-align:center;margin-top:8px"></div>
+      </div>
+
+    </div>
+  </div>
+
+</main>
+
+<footer class="site-footer">
+  <div class="footer-disclaimer">For entertainment only — no real money involved.</div>
+  <div>LuckyDev Casino &copy; 2025 — Play responsibly. This is a free-to-play game with no monetary value.</div>
+</footer>
+
+<!-- SCRIPTS -->
+<script src="js/core.js"></script>
+<script src="js/addiction.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/particles.js"></script>
+<script src="js/firebase.js"></script>
+<script>
+(async () => {
+  Core.init();
+  Particles.init();
+
+  // Wire header
+  Core.setBalanceEl(document.getElementById('balance-display'));
+  Core.setXPEls(document.getElementById('xp-fill'), document.getElementById('xp-level-label'));
+  Core.updateBalanceUI(0, Core.getBalance());
+  Core.updateXPBar();
+
+  // Mute button
+  const muteBtn = document.getElementById('mute-btn');
+  muteBtn && muteBtn.addEventListener('click', () => {
+    const icon = muteBtn.querySelector('use');
+    const isMuted = icon.getAttribute('href') === '#icon-mute';
+    Audio.setMuted(!isMuted);
+    icon.setAttribute('href', isMuted ? '#icon-volume' : '#icon-mute');
+    Audio.playClick();
+  });
+
+  // Wire all button sounds
+  Audio.wireButtonSounds();
+
+  // Addiction systems
+  Addiction.init();
+
+  const s = Core.getState();
+  document.getElementById('streak-count').textContent = s.streak || 0;
+  document.getElementById('streak-count-stat').textContent = s.streak || 0;
+  Addiction.updateStreakDisplay();
+
+  // Render missions
+  renderMissions();
+
+  // Firebase
+  await FirebaseDB.init();
+  renderLBPreview();
+  subscribeJackpotDisplay();
+
+  // Check rebuy
+  checkRebuyDisplay();
+
+  // Hide loading screen
+  setTimeout(() => {
+    document.getElementById('loading-screen').classList.add('done');
+  }, 2000);
+
+  // Balance change callback
+  Core.setOnBalanceChange((balance) => {
+    if (balance < 50 && Core.canRebuy()) {
+      document.getElementById('rebuy-section').style.display = '';
+    }
+    // Submit to leaderboard on balance changes
+    FirebaseDB.submitScore(Core.getState().username, balance, Core.getState().biggestWin, null);
+  });
+})();
+
+function renderMissions() {
+  const missions = Core.getMissions();
+  const list = document.getElementById('missions-list');
+  if (!list) return;
+  list.innerHTML = missions.map(m => `
+    <div class="mission-item">
+      <svg class="mission-icon icon" style="color:${m.done ? 'var(--green)' : 'var(--text-sec)'}" aria-hidden="true">
+        <use href="#icon-${m.icon}"/>
+      </svg>
+      <div class="mission-info">
+        <div class="mission-name">${m.name}</div>
+        <div class="mission-desc">${m.desc}</div>
+        <div class="mission-progress">
+          <div class="mission-fill" style="width:${Math.min(100,(m.progress/m.target)*100)}%"></div>
+        </div>
+      </div>
+      <div class="mission-reward">${m.done ? 'Done!' : '+' + m.reward}</div>
+    </div>
+  `).join('');
+}
+
+async function renderLBPreview() {
+  const rows = await FirebaseDB.getLeaderboard(5);
+  const el = document.getElementById('lb-preview');
+  if (!el) return;
+  const myName = Core.getState().username;
+  el.innerHTML = rows.slice(0,5).map((r, i) => `
+    <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--bg-panel)">
+      <span class="rank-badge rank-${i < 3 ? i+1 : 'other'}">${i+1}</span>
+      <span style="flex:1;font-size:0.85rem;color:${r.username === myName ? 'var(--gold)' : 'var(--text-pri)'}">${r.username}</span>
+      <span style="font-family:var(--font-mono);font-size:0.82rem;color:var(--gold)">${r.balance.toLocaleString()}</span>
+    </div>
+  `).join('');
+}
+
+function subscribeJackpotDisplay() {
+  FirebaseDB.subscribeJackpot(amount => {
+    const el = document.getElementById('jackpot-display');
+    if (el) el.textContent = amount.toLocaleString();
+  });
+}
+
+function checkRebuyDisplay() {
+  if (Core.getBalance() < 50 && Core.canRebuy()) {
+    document.getElementById('rebuy-section').style.display = '';
+  }
+}
+</script>
+
+</body>
+</html>

@@ -1,0 +1,224 @@
+/* ===== ICON ANIMATIONS ===== */
+
+/* Fire flicker */
+@keyframes fire-flicker {
+  0%,100% { transform: scaleY(1) scaleX(1) rotate(-1deg); opacity: 1; }
+  25% { transform: scaleY(1.05) scaleX(0.97) rotate(1deg); opacity: 0.95; }
+  50% { transform: scaleY(0.97) scaleX(1.03) rotate(-0.5deg); opacity: 1; }
+  75% { transform: scaleY(1.03) scaleX(0.98) rotate(1.5deg); opacity: 0.9; }
+}
+.animate-fire { animation: fire-flicker 0.6s ease-in-out infinite; transform-origin: bottom center; }
+
+/* Coin spin */
+@keyframes coin-spin {
+  0% { transform: rotateY(0deg); }
+  100% { transform: rotateY(360deg); }
+}
+.animate-coin { animation: coin-spin 1.2s linear infinite; }
+
+/* Lightning pulse */
+@keyframes lightning-pulse {
+  0%,100% { opacity: 1; filter: drop-shadow(0 0 4px #FFD700); }
+  50% { opacity: 0.7; filter: drop-shadow(0 0 12px #FFD700) brightness(1.3); }
+}
+.animate-lightning { animation: lightning-pulse 0.8s ease-in-out infinite; }
+
+/* Star twinkle */
+@keyframes star-twinkle {
+  0%,100% { transform: scale(1) rotate(0deg); filter: drop-shadow(0 0 2px #FFD700); }
+  50% { transform: scale(1.12) rotate(10deg); filter: drop-shadow(0 0 10px #FFD700); }
+}
+.animate-star { animation: star-twinkle 2s ease-in-out infinite; }
+
+/* Trophy glow */
+@keyframes trophy-glow {
+  0%,100% { filter: drop-shadow(0 0 4px #FFD700); }
+  50% { filter: drop-shadow(0 0 16px #FFD700) brightness(1.2); }
+}
+.animate-trophy { animation: trophy-glow 2s ease-in-out infinite; }
+
+/* Bounce */
+@keyframes bounce-up {
+  0%,100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+.animate-bounce { animation: bounce-up 0.8s ease-in-out infinite; }
+
+/* Neon pulse on elements */
+@keyframes neon-pulse-gold {
+  0%,100% { box-shadow: 0 0 8px #FFD700, 0 0 20px #FFD70066; }
+  50% { box-shadow: 0 0 16px #FFD700, 0 0 40px #FFD70099, 0 0 60px #FFD70044; }
+}
+.neon-pulse-gold { animation: neon-pulse-gold 2s ease-in-out infinite; }
+
+@keyframes neon-pulse-cyan {
+  0%,100% { box-shadow: 0 0 8px #00FFFF, 0 0 20px #00FFFF66; }
+  50% { box-shadow: 0 0 16px #00FFFF, 0 0 40px #00FFFF99, 0 0 60px #00FFFF44; }
+}
+.neon-pulse-cyan { animation: neon-pulse-cyan 2s ease-in-out infinite; }
+
+@keyframes neon-pulse-red {
+  0%,100% { box-shadow: 0 0 8px #FF3B30, 0 0 20px #FF3B3066; }
+  50% { box-shadow: 0 0 16px #FF3B30, 0 0 40px #FF3B3099; }
+}
+.neon-pulse-red { animation: neon-pulse-red 1s ease-in-out infinite; }
+
+/* Spin */
+@keyframes rotate-360 {
+  to { transform: rotate(360deg); }
+}
+.animate-spin { animation: rotate-360 2s linear infinite; }
+.animate-spin-fast { animation: rotate-360 0.5s linear infinite; }
+
+/* Fade in up */
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-up { animation: fade-up 0.4s ease; }
+
+/* Win celebrate */
+@keyframes win-pop {
+  0% { transform: scale(1); }
+  30% { transform: scale(1.15); }
+  60% { transform: scale(0.95); }
+  100% { transform: scale(1); }
+}
+.animate-win-pop { animation: win-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1); }
+
+/* Reel spin (slots) */
+@keyframes reel-blur {
+  0%,100% { filter: blur(0); }
+  50% { filter: blur(2px) brightness(1.1); }
+}
+
+/* Jackpot flash */
+@keyframes jackpot-siren {
+  0% { background: radial-gradient(ellipse at center, #1a0f00, #000); }
+  25% { background: radial-gradient(ellipse at center, #2a1a00, #050000); }
+  50% { background: radial-gradient(ellipse at center, #001a1a, #000); }
+  75% { background: radial-gradient(ellipse at center, #1a001a, #000); }
+}
+#jackpot-overlay.active { animation: jackpot-siren 0.5s ease-in-out infinite; }
+
+/* Cashout glow pulse for crash game */
+@keyframes cashout-urgency {
+  0%,100% { box-shadow: 0 0 8px #30D158, 0 0 20px #30D15866; transform: scale(1); }
+  50% { box-shadow: 0 0 20px #30D158, 0 0 60px #30D15899; transform: scale(1.03); }
+}
+.cashout-pulse { animation: cashout-urgency 0.6s ease-in-out infinite; }
+
+/* Plinko ball trail */
+@keyframes trail-fade {
+  from { opacity: 0.6; }
+  to { opacity: 0; transform: scale(0.5); }
+}
+
+/* Countdown urgent */
+@keyframes urgent-shake {
+  0%,100% { transform: translateX(0); }
+  25% { transform: translateX(-3px); }
+  75% { transform: translateX(3px); }
+}
+.urgent-shake { animation: urgent-shake 0.3s ease infinite; }
+
+/* Chip float */
+@keyframes chip-float {
+  0%,100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-10px) rotate(5deg); }
+}
+.animate-chip { animation: chip-float 3s ease-in-out infinite; }
+
+/* Decorative background elements */
+@keyframes bg-drift {
+  0% { transform: translate(0,0) rotate(0deg); opacity: 0.03; }
+  50% { transform: translate(20px, -30px) rotate(15deg); opacity: 0.06; }
+  100% { transform: translate(0,0) rotate(0deg); opacity: 0.03; }
+}
+.bg-drift { animation: bg-drift 12s ease-in-out infinite; }
+
+/* Multiplier climb */
+@keyframes multiplier-climb {
+  from { transform: scale(0.9); color: #FFD700; }
+  to { transform: scale(1); }
+}
+
+/* Mine reveal */
+@keyframes mine-reveal {
+  0% { transform: scale(0) rotate(-180deg); opacity: 0; }
+  60% { transform: scale(1.2) rotate(5deg); }
+  100% { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+.animate-mine-reveal { animation: mine-reveal 0.5s cubic-bezier(0.34, 1.56, 0.64, 1); }
+
+/* Gem safe reveal */
+@keyframes gem-reveal {
+  0% { transform: scale(0); opacity: 0; }
+  80% { transform: scale(1.15); }
+  100% { transform: scale(1); opacity: 1; }
+}
+.animate-gem-reveal { animation: gem-reveal 0.35s cubic-bezier(0.34, 1.56, 0.64, 1); }
+
+/* Card deal */
+@keyframes card-deal {
+  from { transform: translateY(-80px) rotate(-10deg); opacity: 0; }
+  to { transform: translateY(0) rotate(0deg); opacity: 1; }
+}
+.animate-card-deal { animation: card-deal 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94); }
+
+/* Roulette wheel spin */
+@keyframes wheel-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* XP bar fill */
+@keyframes xp-fill {
+  from { width: 0; }
+}
+
+/* Balance tick up */
+@keyframes balance-tick {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.08); }
+  100% { transform: scale(1); }
+}
+.balance-tick { animation: balance-tick 0.25s ease; }
+
+/* Slot cascade */
+@keyframes symbol-fall {
+  from { transform: translateY(-100%); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+.symbol-fall { animation: symbol-fall 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94); }
+
+/* Payline flash */
+@keyframes payline-flash {
+  0%,100% { opacity: 0; }
+  50% { opacity: 1; }
+}
+.payline-active { animation: payline-flash 0.5s ease-in-out 4; }
+
+/* Crash graph line */
+@keyframes graph-draw {
+  from { stroke-dashoffset: 1000; }
+  to { stroke-dashoffset: 0; }
+}
+
+/* Loading spinner */
+@keyframes spinner {
+  to { transform: rotate(360deg); }
+}
+.spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--border);
+  border-top-color: var(--gold);
+  border-radius: 50%;
+  animation: spinner 0.8s linear infinite;
+}
+
+/* Confetti cannon (particle override) */
+@keyframes confetti-fall {
+  0% { transform: translateY(-20px) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+}

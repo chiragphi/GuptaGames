@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>How to Play — LuckyDev Casino</title>
+<link rel="stylesheet" href="css/main.css"/>
+<link rel="stylesheet" href="css/animations.css"/>
+</head>
+<body>
+<div style="display:none" id="svg-sprite-container"></div>
+<script>fetch('assets/icons/sprite.svg').then(r=>r.text()).then(t=>{document.getElementById('svg-sprite-container').innerHTML=t;});</script>
+<div id="toast-container"></div>
+<div id="bonus-popup"><div class="bonus-popup-title">Free Bonus!</div><div class="bonus-popup-amount">+100 CHIPS</div><div style="display:flex;gap:10px;justify-content:center;margin-top:16px"><button class="btn btn-gold" onclick="claimBonusPopup()">Claim!</button><button class="btn btn-ghost btn-sm" onclick="dismissBonusPopup()">Dismiss</button></div></div>
+
+<header class="site-header">
+  <a href="index.html" class="header-logo"><svg class="icon" aria-hidden="true"><use href="#icon-crown"/></svg>LuckyDev Casino</a>
+  <nav class="header-nav">
+    <a href="index.html"><svg class="icon" aria-hidden="true"><use href="#icon-home"/></svg>Lobby</a>
+    <a href="leaderboard.html"><svg class="icon" aria-hidden="true"><use href="#icon-trophy"/></svg>Leaderboard</a>
+    <a href="profile.html"><svg class="icon" aria-hidden="true"><use href="#icon-profile"/></svg>Profile</a>
+    <a href="howtoplay.html" class="active"><svg class="icon" aria-hidden="true"><use href="#icon-warning"/></svg>How to Play</a>
+  </nav>
+  <div class="header-right">
+    <div class="balance-display" id="balance-display"><svg class="icon" aria-hidden="true"><use href="#icon-coin"/></svg><span class="balance-amount" id="balance-amount">0</span></div>
+  </div>
+</header>
+
+<main class="container page-fade" style="padding:24px 20px;max-width:800px">
+
+  <div class="section-title" style="font-size:1.8rem;margin-bottom:8px">
+    <svg class="icon" style="width:28px;height:28px" aria-hidden="true"><use href="#icon-warning"/></svg>
+    How to Play
+  </div>
+  <p style="color:var(--text-sec);margin-bottom:32px">LuckyDev Casino is free-to-play entertainment. All chips are virtual with no monetary value.</p>
+
+  <!-- Game rules -->
+  <div style="display:flex;flex-direction:column;gap:20px">
+
+    <div class="card">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
+        <svg class="icon" style="width:40px;height:40px;color:#FF3B30" aria-hidden="true"><use href="#icon-seven"/></svg>
+        <div><div style="font-size:1.2rem;font-weight:800;color:var(--gold)">Slots</div><div style="font-size:0.8rem;color:var(--text-sec)">5 reels · 10 paylines · cascading wins</div></div>
+      </div>
+      <p style="font-size:0.88rem;color:var(--text-sec)">Spin 5 reels and match symbols across 10 paylines. Winning symbols explode and new ones fall in (cascade) for chain reactions. Hit 5 sevens on the center line to trigger the progressive jackpot!</p>
+      <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
+        <span style="font-size:0.75rem;background:var(--bg-panel);padding:4px 10px;border-radius:100px;color:var(--text-sec)">Space to spin</span>
+        <span style="font-size:0.75rem;background:var(--bg-panel);padding:4px 10px;border-radius:100px;color:var(--text-sec)">Auto-spin available</span>
+        <span style="font-size:0.75rem;background:var(--bg-panel);padding:4px 10px;border-radius:100px;color:var(--text-sec)">Turbo mode</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
+        <svg class="icon" style="width:40px;height:40px;color:var(--cyan)" aria-hidden="true"><use href="#icon-lightning"/></svg>
+        <div><div style="font-size:1.2rem;font-weight:800;color:var(--gold)">Crash</div><div style="font-size:0.8rem;color:var(--text-sec)">Real-time multiplier — cash out before it crashes</div></div>
+      </div>
+      <p style="font-size:0.88rem;color:var(--text-sec)">A multiplier climbs from 1x upward. Cash out before it crashes to multiply your bet. The longer you wait, the higher the reward — but the crash could come at any moment!</p>
+    </div>
+
+    <div class="card">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
+        <svg class="icon" style="width:40px;height:40px;color:var(--green)" aria-hidden="true"><use href="#icon-gem"/></svg>
+        <div><div style="font-size:1.2rem;font-weight:800;color:var(--gold)">Plinko</div><div style="font-size:0.8rem;color:var(--text-sec)">Physics ball drop · up to 1000x</div></div>
+      </div>
+      <p style="font-size:0.88rem;color:var(--text-sec)">Drop balls through a peg field. Balls bounce randomly and land in multiplier buckets. Choose Low/Medium/High risk — higher risk means bigger rewards at the edges and center jackpot bucket.</p>
+    </div>
+
+    <div class="card">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
+        <svg class="icon" style="width:40px;height:40px;color:white" aria-hidden="true"><use href="#icon-card"/></svg>
+        <div><div style="font-size:1.2rem;font-weight:800;color:var(--gold)">Blackjack</div><div style="font-size:0.8rem;color:var(--text-sec)">6-deck shoe · Vegas rules</div></div>
+      </div>
+      <p style="font-size:0.88rem;color:var(--text-sec)">Beat the dealer without going over 21. Natural Blackjack pays 3:2. Options: Hit, Stand, Double Down (doubles bet, one card), Split (pairs only). Dealer stands on soft 17.</p>
+    </div>
+
+    <div class="card">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
+        <svg class="icon" style="width:40px;height:40px;color:var(--red)" aria-hidden="true"><use href="#icon-card-heart"/></svg>
+        <div><div style="font-size:1.2rem;font-weight:800;color:var(--gold)">Roulette</div><div style="font-size:0.8rem;color:var(--text-sec)">American or European wheel</div></div>
+      </div>
+      <p style="font-size:0.88rem;color:var(--text-sec)">Place bets on numbers, colors, odd/even, or dozens. Spin the wheel. Single number pays 35:1. Outside bets (red/black, even/odd, high/low) pay 1:1. European has single zero (better odds).</p>
+    </div>
+
+    <div class="card">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
+        <svg class="icon" style="width:40px;height:40px;color:var(--red)" aria-hidden="true"><use href="#icon-skull"/></svg>
+        <div><div style="font-size:1.2rem;font-weight:800;color:var(--gold)">Mines</div><div style="font-size:0.8rem;color:var(--text-sec)">Reveal safe tiles · cash out anytime</div></div>
+      </div>
+      <p style="font-size:0.88rem;color:var(--text-sec)">A 5x5 grid hides mines. Click tiles — gems are safe and increase your multiplier, skulls end the round immediately. Cash out any time to collect. More mines = higher multipliers.</p>
+    </div>
+
+    <div class="card">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
+        <svg class="icon" style="width:40px;height:40px;color:white" aria-hidden="true"><use href="#icon-dice-5"/></svg>
+        <div><div style="font-size:1.2rem;font-weight:800;color:var(--gold)">Dice</div><div style="font-size:0.8rem;color:var(--text-sec)">Roll over or under · adjustable win chance</div></div>
+      </div>
+      <p style="font-size:0.88rem;color:var(--text-sec)">Set a win chance (1–95%) and roll. Higher win chance = lower multiplier. Lower win chance = higher payout. Roll over or under the threshold. Press Space to roll quickly.</p>
+    </div>
+
+    <div class="card">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
+        <svg class="icon" style="width:40px;height:40px;color:var(--gold)" aria-hidden="true"><use href="#icon-coin"/></svg>
+        <div><div style="font-size:1.2rem;font-weight:800;color:var(--gold)">Coin Flip</div><div style="font-size:0.8rem;color:var(--text-sec)">50/50 · build a win streak</div></div>
+      </div>
+      <p style="font-size:0.88rem;color:var(--text-sec)">Pick heads or tails. 50/50 odds, 2x payout. Win streaks unlock the Coin Streak achievement. Press Space to flip fast.</p>
+    </div>
+
+    <div class="card">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
+        <svg class="icon" style="width:40px;height:40px;color:var(--cyan)" aria-hidden="true"><use href="#icon-shield"/></svg>
+        <div><div style="font-size:1.2rem;font-weight:800;color:var(--gold)">Towers</div><div style="font-size:0.8rem;color:var(--text-sec)">Climb floors · one trap per floor</div></div>
+      </div>
+      <p style="font-size:0.88rem;color:var(--text-sec)">Each floor has 3 tiles — one is a trap. Click a safe tile to advance. Each level multiplies your bet higher. Cash out at any point. Hit the trap and lose everything.</p>
+    </div>
+
+    <div class="card">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
+        <div style="display:flex;gap:4px">
+          <svg class="icon" style="width:28px;height:28px;color:white" aria-hidden="true"><use href="#icon-card-spade"/></svg>
+          <svg class="icon" style="width:28px;height:28px;color:#CC0000" aria-hidden="true"><use href="#icon-card-heart"/></svg>
+        </div>
+        <div><div style="font-size:1.2rem;font-weight:800;color:var(--gold)">Video Poker</div><div style="font-size:0.8rem;color:var(--text-sec)">Jacks or Better · Royal Flush jackpot</div></div>
+      </div>
+      <p style="font-size:0.88rem;color:var(--text-sec)">Dealt 5 cards. Click cards to hold them, then draw replacements. Need Jacks or Better pair minimum to win. Royal Flush pays 800x and triggers the jackpot celebration!</p>
+    </div>
+
+  </div>
+
+  <!-- Chip system -->
+  <div class="card" style="margin-top:24px;border-color:var(--gold-dim)">
+    <div class="widget-title">
+      <svg class="icon" aria-hidden="true"><use href="#icon-coin"/></svg>
+      Chip System
+    </div>
+    <ul style="color:var(--text-sec);font-size:0.88rem;line-height:1.8;list-style:none;padding:0">
+      <li><svg class="icon" style="width:14px;height:14px;color:var(--green)" aria-hidden="true"><use href="#icon-checkmark"/></svg> Start with 1,000 free chips</li>
+      <li><svg class="icon" style="width:14px;height:14px;color:var(--green)" aria-hidden="true"><use href="#icon-checkmark"/></svg> Free rebuy of 500 chips if you go broke (3 per day, 10-min cooldown)</li>
+      <li><svg class="icon" style="width:14px;height:14px;color:var(--gold)" aria-hidden="true"><use href="#icon-checkmark"/></svg> Earn XP on every bet — level up for bonus chips</li>
+      <li><svg class="icon" style="width:14px;height:14px;color:var(--gold)" aria-hidden="true"><use href="#icon-checkmark"/></svg> Complete daily missions for chip rewards</li>
+      <li><svg class="icon" style="width:14px;height:14px;color:var(--cyan)" aria-hidden="true"><use href="#icon-checkmark"/></svg> 7-day login streak earns 1,000 bonus chips</li>
+    </ul>
+  </div>
+
+  <div class="card" style="margin-top:16px;border-color:var(--red);background:rgba(255,59,48,0.05)">
+    <div style="font-weight:800;color:var(--red);margin-bottom:8px;display:flex;align-items:center;gap:8px">
+      <svg class="icon" style="width:18px;height:18px" aria-hidden="true"><use href="#icon-warning"/></svg>
+      Responsible Gaming
+    </div>
+    <p style="font-size:0.85rem;color:var(--text-sec)">LuckyDev Casino is for entertainment purposes only. All chips are virtual and have no monetary value. No real money can be won or lost. If you find gambling content distressing, please take a break.</p>
+  </div>
+
+</main>
+
+<footer class="site-footer">
+  <div class="footer-disclaimer">For entertainment only — no real money involved.</div>
+  <div>LuckyDev Casino &copy; 2025</div>
+</footer>
+
+<script src="js/core.js"></script>
+<script src="js/addiction.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/firebase.js"></script>
+<script>
+(async () => {
+  Core.init();
+  Core.setBalanceEl(document.getElementById('balance-display'));
+  Core.updateBalanceUI(0, Core.getBalance());
+  Audio.wireButtonSounds();
+  await FirebaseDB.init();
+})();
+</script>
+</body>
+</html>
